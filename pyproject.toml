@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "pmm-cfg-gen"
+version = "0.1.0"
+description = ""
+authors = ["Shawn Anderson <sanderson@eye-catcher.com>"]
+readme = "README.md"
+packages = [{include = "pmm_cfg_gen"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "^3.2.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
