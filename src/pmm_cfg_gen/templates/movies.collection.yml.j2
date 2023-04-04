@@ -1,0 +1,24 @@
+external_templates:
+  pmm: templates
+  
+templates:
+  tmdbTemplate:
+    optional:
+    - collection
+    - movie
+    - list
+    tmdb_collection_details: <<collection>>
+    tmdb_movie: <<movie>>
+    tmdb_list: <<list>>s
+    trakt_list: <<list>>
+    trakt_list_details: <<list>>
+    sync_mode: sync
+    collection_order: release
+    url_poster: <<poster>>
+    sort_title: <<collection_name>>
+
+collections:
+  "{{ item.title }}":
+    template: {name: tmdbTemplate, collection: "", poster: https://theposterdb.com/api/assets/ }
+    # {{ item | generateTpDbUrl }}
+    # collection_mode: hide

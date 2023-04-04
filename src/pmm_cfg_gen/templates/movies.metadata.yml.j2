@@ -1,0 +1,10 @@
+metadata:               #Posters found here: https://theposterdb.com/user/musikmann2000
+{% for item in items %}
+    "{{ item.metadata.title}} ({{ item.metadata.year }}){% if item.metadata.editionTitle and item.metadata.editionTitle | length > 0 %}[{{ item.metadata.editionTitle }}]{% endif %}":
+        year: {{ item.metadata.year }}
+        title: "{{ item.metadata.title }}"
+        {%- if item.metadata.editionTitle and item.metadata.editionTitle | length > 0 %}edition_filter: {{ item.metadata.editionTitle }}{% endif %}
+        url_poster: https://theposterdb.com/api/assets/
+        # IDs: {{ item.metadata.guids | map(attribute="id") | list | join(', ')}}
+        # {{ item.metadata | generateTpDbUrl }}
+{% endfor %}

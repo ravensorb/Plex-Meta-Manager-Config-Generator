@@ -1,0 +1,29 @@
+plex:
+  serverUrl: ${PLEX_SERVER:-https://plex.ravenwolf.org:32400}
+  token: ${PLEX_TOKEN}
+thePosterDatabase:
+  searchUrl: https://theposterdb.com/search/advanced/results
+  dbAssetUrl: https://theposterdb.com/api/assets/
+templates:
+  collections:
+    movies:
+      pmmFileName: movies.collection.yml.j2
+      jsonFileName: movies.collection.json.j2
+    shows:
+      pmmFileName: tvshows.collection.yml.j2
+      jsonFileName: tvshows.collection.json.j2
+  metadata:
+    movies:
+      pmmFileName: movies.metadata.yml.j2
+      jsonFileName: movies.metadata.json.j2
+    shows:
+      pmmFileName: tvshows.metadata.yml.j2
+      jsonFileName: tvshows.metadata.json.j2
+    library:
+      jsonFileName: library.json.j2
+output:
+  path: "./data"
+  pathFormat: "{{libraryTitle}}"
+generate:
+  enableJson: False
+  enablePmm: True

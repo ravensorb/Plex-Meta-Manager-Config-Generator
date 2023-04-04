@@ -1,0 +1,17 @@
+metadata:               #Posters found here: https://theposterdb.com/user/musikmann2000
+{% for item in items %}
+    "{{ item.metadata.title}} ({{ item.metadata.year }})":
+        year: {{ item.metadata.year }}
+        title: "{{ item.metadata.title }}"
+        url_poster: https://theposterdb.com/api/assets/
+        # IDs: {{ item.metadata.guids | map(attribute="id") | list | join(', ')}}
+        # {{ item.metadata | generateTpDbUrl }}
+        seasons:
+        {%- for season in item.seasons %}
+            {{ season.seasonNumber }}:
+                url_poster: https://theposterdb.com/api/assets/
+                # IDs: {{ season.guids | map(attribute="id") | list | join(', ')}}
+                # {{ season | generateTpDbUrl }}
+        {%- endfor %}
+        
+{% endfor %}
