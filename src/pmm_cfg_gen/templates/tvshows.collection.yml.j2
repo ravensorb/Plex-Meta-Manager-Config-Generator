@@ -1,24 +1,25 @@
 external_templates:
   pmm: templates
-  
+
 templates:
-  tmdbTemplate:
+  tvdbTemplate:
     optional:
-    - collection
-    - movie
-    - list
-    tmdb_collection_details: <<collection>>
-    tmdb_movie: <<movie>>
-    tmdb_list: <<list>>s
+      - network
+      - list
+      - show
+    tvdb_list_details: <<list>>
+    tvdb_show: <<show>>
     trakt_list: <<list>>
     trakt_list_details: <<list>>
-    sync_mode: sync
-    collection_order: release
-    url_poster: <<poster>>
     sort_title: <<collection_name>>
+    sync_mode: sync
+    url_poster: <<poster>>
 
 collections:
   "{{ item.title }}":
-    template: {name: tmdbTemplate, collection: "", poster: https://theposterdb.com/api/assets/ }
+    template: { name: tvdbTemplate, list: "", show: "", poster: https://theposterdb.com/api/assets/ }
+    summary: {{ item.title }}
     # {{ item | generateTpDbUrl }}
     # collection_mode: hide
+    # trakt_list:
+    #  - 

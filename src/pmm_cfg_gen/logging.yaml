@@ -1,0 +1,48 @@
+version: 1
+disable_existing_loggers: yes
+
+formatters:
+  standard:
+    class: coloredlogs.ColoredFormatter
+    format: "%(asctime)s [%(levelname)8s] %(name)s: %(message)s"
+    datefmt: "%Y-%m-%d %H:%M:%S"
+  file:
+    format: "%(asctime)s|%(levelname)8s|%(name)s|%(message)s"
+    datefmt: "%Y-%m-%d %H:%M:%S"
+  error:
+    format: "%(asctime)s - %(name)s - %(levelname)8s <PID %(process)d:%(processName)s> %(name)s.%(funcName)s(): %(message)s"
+    datefmt: "%Y-%m-%d %H:%M:%S"
+  debug:
+    format: "%(asctime)s, %(name)s, %(levelname)s, <PID %(process)d:%(processName)s>, %(name)s.%(funcName)s(%(lineno)s), %(message)s"
+    #format: "[%(asctime)s] (%(filename)25s:%(lineno)4s: %(funcName)30s) - %(levelname)8s - %(message)"
+    datefmt: "%Y-%m-%d %H:%M:%S"
+
+handlers:
+  root_file_handler:
+    class: logging.handlers.RotatingFileHandler
+    level: DEBUG
+    formatter: file
+    filename: pmm-cfg-gen.log
+    maxBytes: 10485760 # 10MB
+    backupCount: 20
+    encoding: utf8
+
+  console:
+    class: logging.StreamHandler
+    formatter: standard
+    stream: ext://sys.stdout
+
+  error_console:
+    class: logging.StreamHandler
+    level: ERROR
+    formatter: error
+    stream: ext://sys.stderr
+
+loggers:
+  # root:
+  #   handlers: [console, error_console]
+  #   propagate: no
+  pmm_cfg_gen:
+    handlers: [console, error_console, root_file_handler]
+    level: INFO
+    propagate: yes

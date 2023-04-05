@@ -2,27 +2,29 @@
 
 #######################################################################
 
-import logging 
-
+import logging
 import os
+
 from pmm_cfg_gen.utils.cli_args import globalArgs
+from pmm_cfg_gen.utils.logging import setup_logging
 from pmm_cfg_gen.utils.plex import PlexLibraryProcessor
 from pmm_cfg_gen.utils.settings_yml import globalSettingsMgr
 
-logger = logging.getLogger("pmm_cfg_gen")
-logger.setLevel(level=getattr(logging, globalArgs.logLevel))
+globalSettingsMgr.loadFromFile("config.yaml", globalArgs)
 
-ch=logging.StreamHandler()
-ch.setLevel(level=getattr(logging, globalArgs.logLevel))
-format = logging.Formatter('[%(asctime)s] (%(filename)25s:%(lineno)4s: %(funcName)30s) - %(levelname)8s - %(message)s')
-ch.setFormatter(format)
-logger.addHandler(ch)
+setup_logging(
+    str(globalSettingsMgr.modulePath.joinpath("logging.yaml")),
+    default_level=getattr(logging, globalArgs.logLevel),
+)
+
+logger = logging.getLogger("pmm_cfg_gen")
+logger.setLevel(getattr(logging, globalArgs.logLevel))
+
 
 def cli():
-    globalSettingsMgr.loadFromFile("config.yaml", globalArgs)
-
     plexMoveLibraryProcessor = PlexLibraryProcessor()
     plexMoveLibraryProcessor.process()
+
 
 if __name__ == "__main__":
     cli()
