@@ -21,7 +21,6 @@ class RollingFileHanderEx(logging.handlers.RotatingFileHandler):
         delay: bool = False,
         errors: str | None = None,
     ) -> None:
-
         os.makedirs(os.path.dirname(filename), exist_ok=True)
 
         super().__init__(filename, mode, maxBytes, backupCount, encoding, delay, errors)

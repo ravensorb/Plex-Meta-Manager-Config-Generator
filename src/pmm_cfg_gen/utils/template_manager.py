@@ -18,14 +18,14 @@ from pmm_cfg_gen.utils.settings_yml import globalSettingsMgr
 # Jinja2 filters and utilitiy methods
 
 
-def plexToJson(item):
+def itemToJson(item):
     str = jsonpickle.encode(item, unpicklable=False)
 
     return str
 
 
-def formatJson(str):
-    return json.dumps(json.loads(str), indent=4)
+def formatJson(data):
+    return jsonpickle.dumps(data, indent=4)
 
 
 def generateTpDbUrl(item, baseUrl=None) -> str:
@@ -84,15 +84,21 @@ class TemplateManager:
                 templatePath
             )
         )
+
         self.__tplEnv = jinja2.Environment(loader=jinja2.FileSystemLoader(templatePath))
 
         self.__cachedTemplates = {}
         self.__registerFilters()
 
-    def render(self, templateName: str | Path, tplArgs: dict) -> str:
+    def render(self, templateName: str | Path, tplArgs: dict) -> str | None:
         self._logger.debug("Render data using template '{}'".format(templateName))
 
         tpl = self.__getTemplate(templateName)
+
+        if tpl is None:
+            self._logger.warn("Template Does not exist: '{}'".format(templateName))
+
+            return None
 
         if "settings" not in tplArgs.keys():
             tplArgs.update({"settings": globalSettingsMgr.settings})
@@ -103,6 +109,9 @@ class TemplateManager:
     def renderAndSave(
         self, templateName: str | Path, fileName: str | Path, tplArgs: dict
     ):
+        if templateName is None or templateName == "None":
+            return
+
         self._logger.debug(
             "Render data using template '{}' and save to '{}'".format(
                 templateName, fileName
@@ -111,16 +120,23 @@ class TemplateManager:
 
         tplResult = self.render(templateName, tplArgs)
 
-        writeFile(fileName, tplResult)
+        if tplResult is not None:
+            writeFile(fileName, tplResult)
 
     #######################################################################
-    def __getTemplate(self, templateName: str | Path):
+    def __getTemplate(self, templateName: str | Path) -> jinja2.Template | None:
         if not templateName in self.__cachedTemplates.keys():
             self._logger.debug("Loading template into cache: {}".format(templateName))
 
-            tpl = self.__tplEnv.get_template(str(templateName))
+            try:
+                tpl = self.__tplEnv.get_template(str(templateName))
 
-            self.__cachedTemplates[templateName] = tpl
+                self.__cachedTemplates[templateName] = tpl
+            except:
+                self._logger.debug("Failed to load template: {}".format(templateName))
+
+                return None
+
         else:
             self._logger.debug(
                 "Retrieving template from cache: {}".format(templateName)
@@ -129,7 +145,7 @@ class TemplateManager:
         return self.__cachedTemplates[templateName]
 
     def __registerFilters(self):
-        self.__tplEnv.filters["plexToJson"] = plexToJson
+        self.__tplEnv.filters["plexToJson"] = itemToJson
         self.__tplEnv.filters["isPMMItem"] = isPMMItem
         self.__tplEnv.filters["formatJson"] = formatJson
         self.__tplEnv.filters["generateTpDbUrl"] = generateTpDbUrl

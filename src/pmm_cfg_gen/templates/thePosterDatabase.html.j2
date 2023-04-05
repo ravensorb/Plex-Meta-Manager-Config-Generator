@@ -1,0 +1,22 @@
+<table class="table table-bordered table-hover table-condensed">
+    <thead>
+        <tr>
+            <th title="Field #1">title</th>
+            <th title="Field #2">searchUrl</th>
+            <th title="Field #3">ids/0</th>
+            <th title="Field #4">ids/1</th>
+            <th title="Field #5">ids/2</th>
+            <th title="Field #6">ids/3</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in items %}
+        <tr>
+            <td>{{ item.title }} </td>
+            <td><a href="{{item.searchUrl}}">Search`</a></td>
+            {% for id in item.ids %}
+            <td>{{ id }}</td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+</table>    

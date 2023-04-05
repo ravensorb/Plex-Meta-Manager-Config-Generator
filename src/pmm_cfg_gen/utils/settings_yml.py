@@ -36,12 +36,19 @@ class SettingsPlex:
 
 
 class SettingsTemplateFiles:
-    pmmFileName: str | None
+    yamlFileName: str | None
     jsonFileName: str | None
+    htmlFileName: str | None
 
-    def __init__(self, pmmFileName: str | None, jsonFileName: str | None) -> None:
-        self.pmmFileName = pmmFileName
+    def __init__(
+        self,
+        yamlFileName: str | None,
+        jsonFileName: str | None,
+        htmlFileName: str | None = None,
+    ) -> None:
+        self.yamlFileName = yamlFileName
         self.jsonFileName = jsonFileName
+        self.htmlFileName = htmlFileName
 
 
 class SettingsTemplateFileGroup:
@@ -76,16 +83,19 @@ class SettingsTemplates:
     templatePath: str | None
     collections: SettingsTemplateFileGroup
     metadata: SettingsTemplateFileGroup
+    thePosterDatabase: SettingsTemplateFiles | None
 
     def __init__(
         self,
         collections: SettingsTemplateFileGroup,
         metadata: SettingsTemplateFileGroup,
         templatePath: str | None = None,
+        thePosterDatabase: SettingsTemplateFiles | None = None,
     ) -> None:
         self.templatePath = templatePath
         self.collections = collections
         self.metadata = metadata
+        self.thePosterDatabase = thePosterDatabase
 
     def getTemplateRootPath(self) -> Path:
         if self.templatePath is None or self.templatePath == "pmm_cfg_gen.tempaltes":
@@ -97,21 +107,25 @@ class SettingsTemplates:
 
 
 class SettingsThePosterDatabase:
+    dataFile: str
     searchUrl: str
     dbAssetUrl: str
 
-    def __init__(self, searchUrl: str, dbAssetUrl: str) -> None:
+    def __init__(self, searchUrl: str, dbAssetUrl: str, dataFile: str) -> None:
         self.searchUrl = searchUrl
         self.dbAssetUrl = dbAssetUrl
+        self.dataFile = dataFile
 
 
 class SettingsGenerate:
     enableJson: bool
-    enablePmm: bool
+    enableYaml: bool
+    enableHtml: bool
 
-    def __init__(self, enableJson: bool, enablePmm: bool) -> None:
+    def __init__(self, enableJson: bool, enableYaml: bool, enableHtml: bool) -> None:
         self.enableJson = enableJson
-        self.enablePmm = enablePmm
+        self.enableYaml = enableYaml
+        self.enableHtml = enableHtml
 
 
 class Settings:
@@ -194,13 +208,19 @@ class SettingsManager:
                 dbAssetUrl=expandvars(
                     self._config["thePosterDatabase"]["dbAssetUrl"].as_str()
                 ),
+                dataFile=str(self._config["thePosterDatabase"]["dataFile"].as_str()),
+                # templates=SettingsTemplateFiles(
+                #     yamlFileName=,
+                #     jsonFileName=,
+                #     htmlFileName=
+                # )
             ),
             templates=SettingsTemplates(
                 collections=SettingsTemplateFileGroup(
                     movies=SettingsTemplateFiles(
-                        pmmFileName=str(
+                        yamlFileName=str(
                             self._config["templates"]["collections"]["movies"][
-                                "pmmFileName"
+                                "yamlFileName"
                             ].as_str()
                         ),
                         jsonFileName=str(
@@ -210,9 +230,9 @@ class SettingsManager:
                         ),
                     ),
                     shows=SettingsTemplateFiles(
-                        pmmFileName=str(
+                        yamlFileName=str(
                             self._config["templates"]["collections"]["shows"][
-                                "pmmFileName"
+                                "yamlFileName"
                             ].as_str()
                         ),
                         jsonFileName=str(
@@ -224,9 +244,9 @@ class SettingsManager:
                 ),
                 metadata=SettingsTemplateFileGroup(
                     movies=SettingsTemplateFiles(
-                        pmmFileName=str(
+                        yamlFileName=str(
                             self._config["templates"]["metadata"]["movies"][
-                                "pmmFileName"
+                                "yamlFileName"
                             ].as_str()
                         ),
                         jsonFileName=str(
@@ -236,9 +256,9 @@ class SettingsManager:
                         ),
                     ),
                     shows=SettingsTemplateFiles(
-                        pmmFileName=str(
+                        yamlFileName=str(
                             self._config["templates"]["metadata"]["shows"][
-                                "pmmFileName"
+                                "yamlFileName"
                             ].as_str()
                         ),
                         jsonFileName=str(
@@ -248,9 +268,9 @@ class SettingsManager:
                         ),
                     ),
                     library=SettingsTemplateFiles(
-                        pmmFileName=str(
+                        yamlFileName=str(
                             self._config["templates"]["metadata"]["library"][
-                                "pmmFileName"
+                                "yamlFileName"
                             ].get(confuse.Optional(None))
                         ),
                         jsonFileName=str(
@@ -260,16 +280,36 @@ class SettingsManager:
                         ),
                     ),
                 ),
+                thePosterDatabase=SettingsTemplateFiles(
+                    yamlFileName=str(
+                        self._config["templates"]["thePosterDatabase"][
+                            "yamlFileName"
+                        ].get(confuse.Optional(None))
+                    ),
+                    jsonFileName=str(
+                        self._config["templates"]["thePosterDatabase"][
+                            "jsonFileName"
+                        ].get(confuse.Optional(None))
+                    ),
+                    htmlFileName=str(
+                        self._config["templates"]["thePosterDatabase"][
+                            "htmlFileName"
+                        ].get(confuse.Optional(None))
+                    ),
+                ),
             ),
             output=SettingsOutput(
                 path=str(self._config["output"]["path"].as_str()),
                 pathFormat=str(self._config["output"]["pathFormat"].as_str()),
             ),
             generate=SettingsGenerate(
+                enableHtml=self._config["generate"]["enableHtml"].get(confuse.Optional(False)),  # type: ignore
                 enableJson=self._config["generate"]["enableJson"].get(confuse.Optional(False)),  # type: ignore
-                enablePmm=self._config["generate"]["enableJson"].get(confuse.Optional(True)),  # type: ignore
+                enableYaml=self._config["generate"]["enableYaml"].get(confuse.Optional(True)),  # type: ignore
             ),
         )
+
+        # self._logger.debug(jsonpickle.dumps(self.settings, indent=4))
 
 
 #######################################################################
