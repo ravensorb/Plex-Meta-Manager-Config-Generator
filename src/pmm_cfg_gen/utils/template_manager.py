@@ -11,7 +11,7 @@ import jsonpickle
 import requests
 
 from pmm_cfg_gen.utils.fileutils import writeFile
-from pmm_cfg_gen.utils.plexutils import isPMMItem
+from pmm_cfg_gen.utils.plex_utils import isPMMItem
 from pmm_cfg_gen.utils.settings_yml import globalSettingsMgr
 
 #######################################################################

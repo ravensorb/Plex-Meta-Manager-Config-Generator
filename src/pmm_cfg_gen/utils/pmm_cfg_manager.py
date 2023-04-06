@@ -8,7 +8,7 @@ from pathlib import Path
 import ruamel.yaml
 
 from pmm_cfg_gen.utils.fileutils import formatLibraryItemPath, writeFile
-from pmm_cfg_gen.utils.plexutils import _cleanTitle, isPMMItem
+from pmm_cfg_gen.utils.plex_utils import _cleanTitle, isPMMItem
 from pmm_cfg_gen.utils.settings_yml import globalSettingsMgr
 from pmm_cfg_gen.utils.template_manager import TemplateManager, generateTpDbUrl
 

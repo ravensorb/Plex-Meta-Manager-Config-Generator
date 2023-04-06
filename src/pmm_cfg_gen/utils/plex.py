@@ -17,7 +17,13 @@ from plexapi.library import LibrarySection
 from plexapi.server import PlexServer
 
 from pmm_cfg_gen.utils.fileutils import formatLibraryItemPath, writeFile
-from pmm_cfg_gen.utils.plexutils import _cleanTitle, isPMMItem
+from pmm_cfg_gen.utils.plex_stats import (
+    PlexStats,
+    PlexStatsLibraryTotals,
+    PlexStatsTimer,
+    PlexStatsTotals,
+)
+from pmm_cfg_gen.utils.plex_utils import _cleanTitle, isPMMItem
 from pmm_cfg_gen.utils.settings_yml import globalSettingsMgr
 from pmm_cfg_gen.utils.template_manager import TemplateManager, generateTpDbUrl
 
@@ -30,10 +36,9 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 class PlexLibraryProcessor:
     _logger: logging.Logger
 
-    _libraryCounts = {}
-
     __session: requests.Session
-    __timers: dict
+
+    __stats: PlexStats
 
     templateManager: TemplateManager
 
@@ -49,15 +54,14 @@ class PlexLibraryProcessor:
     def __init__(self) -> None:
         self._logger = logging.getLogger("pmm_cfg_gen")
 
+        self.__stats = PlexStats()
+
         self.templateManager = TemplateManager(
             globalSettingsMgr.settings.templates.getTemplateRootPath()
         )
 
     def process(self):
-        self.__timers = {}
-
-        self.__timers.update({"program": {}, "library": {}})
-        self.__timers["program"]["start"] = time.perf_counter()
+        self.__stats.timerProgram.start()
 
         self.connectToServer()
 
@@ -75,9 +79,10 @@ class PlexLibraryProcessor:
         for libraryName in globalSettingsMgr.settings.plex.libraries:
             self._processLibrary(libraryName)
 
-        self.__timers["program"]["end"] = time.perf_counter()
+        self.__stats.timerProgram.end()
+        self.__stats.calcTotals()
 
-        self._dispalyTimings()
+        self._displayStats()
 
     def connectToServer(self):
         self._logger.info(
@@ -99,6 +104,7 @@ class PlexLibraryProcessor:
         self._logger.debug("Loading plex library: {}".format(libraryName))
 
         self.plexLibrary = self.plexServer.library.section(libraryName)
+        self.plexLibraryName = libraryName
 
         self.pathLibrary = formatLibraryItemPath(
             globalSettingsMgr.settings.output, self.plexLibrary
@@ -124,7 +130,7 @@ class PlexLibraryProcessor:
         return self.plexLibrary
 
     def _saveThePosterDbSeachCache(self, fileName: str | Path):
-        self._logger.info("Saving ThePosterDb Search Data: {}".format(fileName))
+        self._logger.info("Saving ThePosterDb Search Data")
 
         tplFiles = globalSettingsMgr.settings.templates.thePosterDatabase
         if tplFiles is None:
@@ -133,7 +139,9 @@ class PlexLibraryProcessor:
 
         try:
             for key in self.thePostDbSearchCache:
-                sorted(self.thePostDbSearchCache[key], key=lambda x: x["title"])
+                self.thePostDbSearchCache[key] = sorted(
+                    self.thePostDbSearchCache[key], key=lambda x: x["title"]
+                )
 
                 fileNameHtml = Path(
                     self.pathLibrary,
@@ -183,13 +191,23 @@ class PlexLibraryProcessor:
         if self.plexLibrary.type not in self.thePostDbSearchCache.keys():
             self.thePostDbSearchCache[self.plexLibrary.type] = []
 
-        self.thePostDbSearchCache[self.plexLibrary.type].append(tpdbEntry)
+        it = next(
+            (
+                x
+                for x in self.thePostDbSearchCache[self.plexLibrary.type]
+                if x["title"] == item.title
+            ),
+            None,
+        )
+        if it is None:
+            self.thePostDbSearchCache[self.plexLibrary.type].append(tpdbEntry)
 
     def _processLibrary(self, libraryName: str):
         self._logger.info("Started Processing Library: '{}'".format(libraryName))
 
-        self.__timers["library"].update({libraryName: {}})
-        self.__timers["library"][libraryName]["start"] = time.perf_counter()
+        self.__stats.initLibrary(libraryName)
+
+        self.__stats.timerLibraries[libraryName].start()
 
         self.thePostDbSearchCache = dict()
 
@@ -198,18 +216,10 @@ class PlexLibraryProcessor:
         self._logger.info("Processing Library Collections")
         collections = self.plexLibrary.collections()
 
-        self._libraryCounts.update(
-            {
-                "collections": {
-                    "total": len(collections),
-                    "processed": 0,
-                    "items": {"total": 0, "processed": 0},
-                }
-            }
-        )
+        self.__stats.countsLibraries[libraryName].collections.total = len(collections)
 
         for collection in collections:
-            self._libraryCounts["collections"]["processed"] += 1
+            self.__stats.countsLibraries[libraryName].collections.processed += 1
             if not isPMMItem(collection) and collection.childCount > 0:
                 try:
                     self._processCollection(collection.title, collection)
@@ -225,11 +235,10 @@ class PlexLibraryProcessor:
         self._logger.info("Processing Library Items")
         items = self.plexLibrary.all()
 
-        self._libraryCounts["collections"]["items"]["total"] = len(items)
-        self._libraryCounts["collections"]["items"]["processed"] = 0
+        self.__stats.countsLibraries[libraryName].items.total = len(items)
 
         for item in items:
-            self._libraryCounts["collections"]["items"]["processed"] += 1
+            self.__stats.countsLibraries[libraryName].items.processed += 1
 
             if len(item.collections) == 0:
                 self._logger.info(
@@ -257,7 +266,7 @@ class PlexLibraryProcessor:
             ).resolve()
         )
 
-        self.__timers["library"][libraryName]["end"] = time.perf_counter()
+        self.__stats.timerLibraries[libraryName].end()
 
     def _processCollection(self, itemTitle: str, item):
         title = _cleanTitle(itemTitle)
@@ -269,8 +278,10 @@ class PlexLibraryProcessor:
 
         self._logger.info(
             "[{}/{}] Processing Collection: {}".format(
-                self._libraryCounts["collections"]["processed"],
-                self._libraryCounts["collections"]["total"],
+                self.__stats.countsLibraries[
+                    self.plexLibraryName
+                ].collections.processed,
+                self.__stats.countsLibraries[self.plexLibraryName].collections.total,
                 itemTitle,
             )
         )
@@ -313,8 +324,10 @@ class PlexLibraryProcessor:
 
         childItems = item.items()
         if len(childItems) > 0:
-            self._libraryCounts["collections"]["items"]["total"] = len(childItems)
-            self._libraryCounts["collections"]["items"]["processed"] = 0
+            self.__stats.countsLibraries[self.plexLibraryName].items.total = len(
+                childItems
+            )
+            self.__stats.countsLibraries[self.plexLibraryName].items.processed = 0
 
             self._processMetadata(title, childItems)
 
@@ -331,11 +344,11 @@ class PlexLibraryProcessor:
         itemsWithExtras = []
         for item in items:
             if len(items) > 1:
-                self._libraryCounts["collections"]["items"]["processed"] += 1
+                self.__stats.countsLibraries[self.plexLibraryName].items.processed += 1
             self._logger.info(
                 "[{}/{}] Processing {}: {} ({})".format(
-                    self._libraryCounts["collections"]["items"]["processed"],
-                    self._libraryCounts["collections"]["items"]["total"],
+                    self.__stats.countsLibraries[self.plexLibraryName].items.processed,
+                    self.__stats.countsLibraries[self.plexLibraryName].items.total,
                     item.type,
                     item.title,
                     item.year,
@@ -375,19 +388,37 @@ class PlexLibraryProcessor:
                 tplFiles.jsonFileName, fileNameJson, tplArgs={"items": itemsWithExtras}
             )
 
-    def _dispalyTimings(self):
+    def _displayStats(self):
         # self._logger.debug(json.dumps(self.__timers, indent=4, unpicklable=False))
 
-        tdProgram = self.__timers["program"]["end"] - self.__timers["program"]["start"]
-        self._logger.info("Total Processing Time: {:.2f} seconds".format(tdProgram))
-
-        for libraryName in self.__timers["library"].keys():
-            td = (
-                self.__timers["library"][libraryName]["end"]
-                - self.__timers["library"][libraryName]["start"]
+        self._logger.info(
+            "Total Processing Time: {:.2f} seconds".format(
+                self.__stats.timerProgram.delta
             )
+        )
+        self._logger.info(
+            "Total Collections Processed: {}".format(
+                self.__stats.countsProgram.collections.total
+            )
+        )
+        self._logger.info(
+            "Total Items Processed: {}".format(self.__stats.countsProgram.items.total)
+        )
+
+        for libraryName in self.__stats.timerLibraries.keys():
+            libraryTimer = self.__stats.timerLibraries[libraryName]
+            libaryCounts = self.__stats.countsLibraries[libraryName]
+
+            self._logger.info("Statistics for Library: '{}'".format(libraryName))
+
             self._logger.info(
-                "  Processing Time for Library: '{}'. Total Time: {:.2f} seconds".format(
-                    libraryName, td
+                "  Processing Time: '{}'. Total Time: {:.2f} seconds".format(
+                    libraryName, libraryTimer.delta
                 )
             )
+
+            self._logger.info(
+                "  Collections: {}".format(libaryCounts.collections.total)
+            )
+
+            self._logger.info("  Items: {}".format(libaryCounts.items.total))
