@@ -16,7 +16,7 @@ import urllib3.exceptions
 from plexapi.library import LibrarySection
 from plexapi.server import PlexServer
 
-from pmm_cfg_gen.utils.fileutils import formatLibraryItemPath, writeFile
+from pmm_cfg_gen.utils.fileutils import formatLibraryItemPath
 from pmm_cfg_gen.utils.plex_stats import (
     PlexStats,
     PlexStatsLibraryTotals,
@@ -130,7 +130,11 @@ class PlexLibraryProcessor:
 
         return self.plexLibrary
 
-    def _saveThePosterDbSeachCache(self, fileName: str | Path):
+    def _saveThePosterDbSeachCache(self):
+        if not globalSettingsMgr.settings.generate.enaleThePosterDb:
+            self._logger.debug("Skipping Saving ThPosterDb Search Data...")
+            return
+        
         self._logger.info("Saving ThePosterDb Search Data")
 
         tplFiles = globalSettingsMgr.settings.templates.thePosterDatabase
@@ -146,15 +150,15 @@ class PlexLibraryProcessor:
 
                 fileNameHtml = Path(
                     self.pathLibrary,
-                    "{}.{}.html".format("thePosterDatabaseSearch", key),
+                    "{}.{}.html".format(globalSettingsMgr.settings.thePosterDatabase.baseFileName, key),
                 )
                 fileNameJson = Path(
                     self.pathLibrary,
-                    "{}.{}.json".format("thePosterDatabaseSearch", key),
+                    "{}.{}.json".format(globalSettingsMgr.settings.thePosterDatabase.baseFileName, key),
                 )
                 fileNameYaml = Path(
                     self.pathLibrary,
-                    "{}.{}.yaml".format("thePosterDatabaseSearch", key),
+                    "{}.{}.yaml".format(globalSettingsMgr.settings.thePosterDatabase.baseFileName, key),
                 )
 
                 if tplFiles.jsonFileName is not None and len(tplFiles.jsonFileName) > 0:
@@ -262,11 +266,7 @@ class PlexLibraryProcessor:
                         "Error Processing Item: {}".format(item.title)
                     )
 
-        self._saveThePosterDbSeachCache(
-            Path(
-                self.pathLibrary, globalSettingsMgr.settings.thePosterDatabase.dataFile
-            ).resolve()
-        )
+        self._saveThePosterDbSeachCache()
 
         self.__stats.timerLibraries[libraryName].end()
 
@@ -311,6 +311,8 @@ class PlexLibraryProcessor:
 
             # pmmCfgMgr.mergeCollection(itemTitle, item)
             pass
+        elif not globalSettingsMgr.settings.generate.enableYaml:
+            self._logger.debug("  Skipping Geerating Collection yaml file")
         else:
             self._logger.warn("  Collection File Exists")
 
@@ -323,6 +325,8 @@ class PlexLibraryProcessor:
             self.templateManager.renderAndSave(
                 tplFiles.jsonFileName, fileNameJson, tplArgs={"item": item}
             )
+        elif not globalSettingsMgr.settings.generate.enableJson:
+            self._logger.debug("  Skipping Geerating json file")
 
         childItems = item.items()
         if len(childItems) > 0:

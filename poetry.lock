@@ -666,6 +666,21 @@ files = [
 pyyaml = "*"
 
 [[package]]
+name = "readchar"
+version = "4.0.5"
+description = "Library to easily read single chars and key strokes"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "readchar-4.0.5-py3-none-any.whl", hash = "sha256:76ec784a5dd2afac3b7da8003329834cdd9824294c260027f8c8d2e4d0a78f43"},
+    {file = "readchar-4.0.5.tar.gz", hash = "sha256:08a456c2d7c1888cde3f4688b542621b676eb38cd6cfed7eb6cb2e2905ddc826"},
+]
+
+[package.dependencies]
+setuptools = ">=41.0"
+
+[[package]]
 name = "requests"
 version = "2.28.2"
 description = "Python HTTP for Humans."
@@ -781,7 +796,7 @@ yaml = ["pyyaml"]
 name = "setuptools"
 version = "67.6.1"
 description = "Easily download, build, install, upgrade, and uninstall Python packages"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -899,4 +914,4 @@ watchmedo = ["PyYAML (>=3.10)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "adcb0250753f26d7c3f8bc278af72c8229b68da4aefcb8db5282f0410ff58d54"
+content-hash = "eadb37651c6d2dd3b22ffef57a229f4f580c3c9660c5481597f732b6eced6aa8"

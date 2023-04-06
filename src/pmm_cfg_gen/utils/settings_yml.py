@@ -107,25 +107,27 @@ class SettingsTemplates:
 
 
 class SettingsThePosterDatabase:
-    dataFile: str
+    baseFileName: str
     searchUrl: str
     dbAssetUrl: str
 
-    def __init__(self, searchUrl: str, dbAssetUrl: str, dataFile: str) -> None:
+    def __init__(self, searchUrl: str, dbAssetUrl: str, baseFileName: str) -> None:
         self.searchUrl = searchUrl
         self.dbAssetUrl = dbAssetUrl
-        self.dataFile = dataFile
+        self.baseFileName = baseFileName
 
 
 class SettingsGenerate:
     enableJson: bool
     enableYaml: bool
     enableHtml: bool
+    enaleThePosterDb: bool
 
-    def __init__(self, enableJson: bool, enableYaml: bool, enableHtml: bool) -> None:
+    def __init__(self, enableJson: bool, enableYaml: bool, enableHtml: bool, enableThePosterDb: bool) -> None:
         self.enableJson = enableJson
         self.enableYaml = enableYaml
         self.enableHtml = enableHtml
+        self.enaleThePosterDb = enableThePosterDb
 
 
 class Settings:
@@ -187,7 +189,6 @@ class SettingsManager:
 
         self._config.set_redaction("plex.token", True)
 
-        self._logger.debug(self._config.dump())
         self._logger.debug(
             "Configuration Directory: {}".format(self._config.config_dir())
         )
@@ -208,12 +209,7 @@ class SettingsManager:
                 dbAssetUrl=expandvars(
                     self._config["thePosterDatabase"]["dbAssetUrl"].as_str()
                 ),
-                dataFile=str(self._config["thePosterDatabase"]["dataFile"].as_str()),
-                # templates=SettingsTemplateFiles(
-                #     yamlFileName=,
-                #     jsonFileName=,
-                #     htmlFileName=
-                # )
+                baseFileName=str(self._config["thePosterDatabase"]["baseFileName"].get(confuse.Optional("thePosterDatabase"))),
             ),
             templates=SettingsTemplates(
                 collections=SettingsTemplateFileGroup(
@@ -306,10 +302,12 @@ class SettingsManager:
                 enableHtml=self._config["generate"]["enableHtml"].get(confuse.Optional(False)),  # type: ignore
                 enableJson=self._config["generate"]["enableJson"].get(confuse.Optional(False)),  # type: ignore
                 enableYaml=self._config["generate"]["enableYaml"].get(confuse.Optional(True)),  # type: ignore
+                enableThePosterDb=self._config["generate"]["enableThePosterDb"].get(confuse.Optional(True)),  # type: ignore
             ),
         )
 
-        # self._logger.debug(jsonpickle.dumps(self.settings, indent=4))
+        self._logger.debug("Active Settings:")
+        self._logger.debug(jsonpickle.dumps(self.settings, unpicklable=False))
 
 
 #######################################################################

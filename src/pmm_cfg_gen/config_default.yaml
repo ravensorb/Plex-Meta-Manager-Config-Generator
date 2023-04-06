@@ -2,7 +2,6 @@ plex:
   serverUrl: ${PLEX_SERVER:-https://plex.ravenwolf.org:32400}
   token: ${PLEX_TOKEN}
 thePosterDatabase:
-  dataFile: theposterdbsearch.json
   searchUrl: https://theposterdb.com/search/advanced/results
   dbAssetUrl: https://theposterdb.com/api/assets/
 templates:
@@ -30,4 +29,5 @@ output:
   pathFormat: "{{libraryTitle}}"
 generate:
   enableJson: False
-  enablePmm: True
+  enableYaml: True
+  enableThePosterDb: True

@@ -22,6 +22,13 @@ globalArgParser.add_argument(
     help="Enabled generating json files for each item processed (default: %(default)s)",
 )
 globalArgParser.add_argument(
+    "--generate.enableThePosterDb",
+    action="store_true",
+    default=False,
+    help="Enabled generating thePosterDb files (default: %(default)s)",
+)
+
+globalArgParser.add_argument(
     "--logLevel",
     choices=["INFO", "WARN", "DEBUG", "CRITICAL"],
     default="INFO",
@@ -31,3 +38,4 @@ globalArgParser.add_argument(
 ###################################################################################################
 
 globalArgs = globalArgParser.parse_args()
+
