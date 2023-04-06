@@ -1,22 +1,40 @@
-<table class="table table-bordered table-hover table-condensed">
-    <thead>
-        <tr>
-            <th title="Field #1">title</th>
-            <th title="Field #2">searchUrl</th>
-            <th title="Field #3">ids/0</th>
-            <th title="Field #4">ids/1</th>
-            <th title="Field #5">ids/2</th>
-            <th title="Field #6">ids/3</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for item in items %}
-        <tr>
-            <td>{{ item.title }} </td>
-            <td><a href="{{item.searchUrl}}">Search`</a></td>
-            {% for id in item.ids %}
-            <td>{{ id }}</td>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>ThePosterDb Search List</title>
+
+    <!-- Bootstrap core CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+</head>
+
+<body>
+    <table class="table">
+        <thead>
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">title</th>
+                <th scope="col">Search URL</th>
+                <th scope="col">ID #1</th>
+                <th scope="col">ID #2</th>
+                <th scope="col">ID #3</th>
+                <th scope="col">ID #4</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td scope="row">{{ loop.index }} </td>
+                <td scope="row">{{ item.title }} </td>
+                <td scope="row"><a target="_blank" href="{{item.searchUrl}}">Search</a></td>
+                {% for id in item.ids %}
+                <td scope="row">{{ id }}</td>
+                {% endfor %}
+            </tr>
             {% endfor %}
-        </tr>
-        {% endfor %}
-</table>    
+        </tbody>
+    </table>
+</body>
