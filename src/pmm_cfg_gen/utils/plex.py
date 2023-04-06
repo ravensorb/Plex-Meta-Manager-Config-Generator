@@ -53,6 +53,7 @@ class PlexLibraryProcessor:
     ###############################################################################################
     def __init__(self) -> None:
         self._logger = logging.getLogger("pmm_cfg_gen")
+        self._displayHeader()
 
         self.__stats = PlexStats()
 
@@ -203,6 +204,7 @@ class PlexLibraryProcessor:
             self.thePostDbSearchCache[self.plexLibrary.type].append(tpdbEntry)
 
     def _processLibrary(self, libraryName: str):
+        self._logger.info("-" * 50)
         self._logger.info("Started Processing Library: '{}'".format(libraryName))
 
         self.__stats.initLibrary(libraryName)
@@ -343,8 +345,7 @@ class PlexLibraryProcessor:
 
         itemsWithExtras = []
         for item in items:
-            if len(items) > 1:
-                self.__stats.countsLibraries[self.plexLibraryName].items.processed += 1
+            self.__stats.countsLibraries[self.plexLibraryName].items.processed += 1
             self._logger.info(
                 "[{}/{}] Processing {}: {} ({})".format(
                     self.__stats.countsLibraries[self.plexLibraryName].items.processed,
@@ -388,21 +389,28 @@ class PlexLibraryProcessor:
                 tplFiles.jsonFileName, fileNameJson, tplArgs={"items": itemsWithExtras}
             )
 
+    def _displayHeader(self):
+        self._logger.info("-" * 50)
+        self._logger.info("Please Meta Manager Configuration File Generator")
+        self._logger.info("-" * 50)
+
     def _displayStats(self):
         # self._logger.debug(json.dumps(self.__timers, indent=4, unpicklable=False))
 
+        self._logger.info("-" * 50)
+
+        self._logger.info("Overall Statistics")
+
         self._logger.info(
-            "Total Processing Time: {:.2f} seconds".format(
-                self.__stats.timerProgram.delta
-            )
+            "  Processing Time: {:.2f} seconds".format(self.__stats.timerProgram.delta)
         )
         self._logger.info(
-            "Total Collections Processed: {}".format(
+            "  Collections Processed: {}".format(
                 self.__stats.countsProgram.collections.total
             )
         )
         self._logger.info(
-            "Total Items Processed: {}".format(self.__stats.countsProgram.items.total)
+            "  Items Processed: {}".format(self.__stats.countsProgram.items.total)
         )
 
         for libraryName in self.__stats.timerLibraries.keys():
@@ -422,3 +430,5 @@ class PlexLibraryProcessor:
             )
 
             self._logger.info("  Items: {}".format(libaryCounts.items.total))
+
+        self._logger.info("-" * 50)
