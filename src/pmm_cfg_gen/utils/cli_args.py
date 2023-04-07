@@ -12,9 +12,9 @@ globalArgParser.add_argument(
     "--plex.token", help="Authentication Token (not claim token) for the plex server"
 )
 globalArgParser.add_argument(
-    "--plex.lbraries", nargs="*", help="Commnd delimited list of libraries to process"
+    "--plex.lbraries", nargs="*", help="Comma delimited list of libraries to process"
 )
-globalArgParser.add_argument("--output.path", help="Root path to store generated foles")
+globalArgParser.add_argument("--output.path", help="Root path to store generated files (default: ./data)")
 globalArgParser.add_argument(
     "--generate.enableJson",
     action="store_true",
@@ -25,7 +25,7 @@ globalArgParser.add_argument(
     "--generate.enableThePosterDb",
     action="store_true",
     default=False,
-    help="Enabled generating thePosterDb files (default: %(default)s)",
+    help="Enabled generating thePosterDb report (default: %(default)s)",
 )
 
 globalArgParser.add_argument(
