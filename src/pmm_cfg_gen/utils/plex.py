@@ -4,13 +4,11 @@
 import json
 import logging
 import os
-import time
 from pathlib import Path
 
 import jsonpickle
 import requests
 
-# the following two lines disable InsecureRequestWarning
 import urllib3
 import urllib3.exceptions
 from plexapi.library import LibrarySection
@@ -26,6 +24,7 @@ from pmm_cfg_gen.utils.template_manager import TemplateManager, generateTpDbUrl
 
 ###################################################################################################
 
+# the following two lines disable InsecureRequestWarning
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
@@ -148,6 +147,7 @@ class PlexLibraryProcessor:
         collections = self.plexLibrary.collections()
 
         self.__stats.countsLibraries[libraryName].collections.total = len(collections)
+        self.__stats.countsLibraries[libraryName].collections.processed = 0
 
         for collection in collections:
             try:
@@ -161,6 +161,7 @@ class PlexLibraryProcessor:
         items = self.plexLibrary.all()
 
         self.__stats.countsLibraries[libraryName].items.total = len(items)
+        self.__stats.countsLibraries[libraryName].items.processed = 0
         self.__stats.countsLibraries[libraryName].calcTotals()
 
         for item in items:
