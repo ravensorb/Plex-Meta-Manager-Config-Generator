@@ -20,6 +20,6 @@ collections:
     template: { name: tvdbTemplate, list: "", show: "", poster: https://theposterdb.com/api/assets/ }
     summary: {{ item.title }}
     # {{ item | generateTpDbUrl }}
-    # collection_mode: hide
+    {% if item.childCount != 1 %}# {% endif %}collection_mode: hide
     # trakt_list:
     #  - 

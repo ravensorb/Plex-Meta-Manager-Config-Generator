@@ -42,7 +42,7 @@ jsonpickle.handlers.registry.register(PlexObject, PlexJsonHandler, True)
 
 def isPMMItem(item: PlexPartialObject):
     for label in item.labels:
-        if label.tag in [
+        if str(label.tag).strip() in [
             "Decade",
             "Emmy Awards",
             "Golden Globes Awards",
@@ -55,8 +55,29 @@ def isPMMItem(item: PlexPartialObject):
             )
             return True
 
+        if str(item.title).strip() in [
+            "Golden Globes Best Director Winners",
+            "Golden Globes Best Picture Winners",
+            "Oscars Best Director Winners",
+            "Oscars Best Picture Winners",
+            "Newly Released",
+            "New Episodes",
+            "TMDb Airing Today",
+            "TMDb On The Air"
+        ]:
+            logging.getLogger("pmm_cfg_gen").debug(
+                "isPMMItem Found: {} - {}".format(item.title, label.tag)
+            )
+            return True
+            
+
     return False
 
 
 def _cleanTitle(s: str) -> str:
     return s.replace("/", "-").replace("\\", "-")
+
+def _formatItemTitle(item) -> str:
+    s = " ({})".format(item.year)
+    
+    return "{}{}".format(item.title, s if s.strip() not in item.title else "")

@@ -38,4 +38,3 @@ globalArgParser.add_argument(
 ###################################################################################################
 
 globalArgs = globalArgParser.parse_args()
-

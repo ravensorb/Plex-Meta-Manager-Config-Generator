@@ -822,6 +822,17 @@ files = [
 ]
 
 [[package]]
+name = "timedelta"
+version = "2020.12.3"
+description = "datetime.timedelta replacement"
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "timedelta-2020.12.3.tar.gz", hash = "sha256:41c28b314de9cb6e4c95fcc9f4e3ecee435f2fc821a079cd9243be4783ac4cf4"},
+]
+
+[[package]]
 name = "tomli"
 version = "2.0.1"
 description = "A lil' TOML parser"
@@ -914,4 +925,4 @@ watchmedo = ["PyYAML (>=3.10)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "eadb37651c6d2dd3b22ffef57a229f4f580c3c9660c5481597f732b6eced6aa8"
+content-hash = "6a194901547da8fba1d652607318b2ed00ec8cc721539e6019786232f4d60542"

@@ -18,12 +18,9 @@ from plexapi.server import PlexServer
 
 from pmm_cfg_gen.utils.fileutils import formatLibraryItemPath
 from pmm_cfg_gen.utils.plex_stats import (
-    PlexStats,
-    PlexStatsLibraryTotals,
-    PlexStatsTimer,
-    PlexStatsTotals,
+    PlexStats
 )
-from pmm_cfg_gen.utils.plex_utils import _cleanTitle, isPMMItem
+from pmm_cfg_gen.utils.plex_utils import _cleanTitle, isPMMItem, _formatItemTitle
 from pmm_cfg_gen.utils.settings_yml import globalSettingsMgr
 from pmm_cfg_gen.utils.template_manager import TemplateManager, generateTpDbUrl
 
@@ -35,6 +32,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 ###################################################################################################
 class PlexLibraryProcessor:
     _logger: logging.Logger
+    _itemProcessedCache: dict[str,list]
 
     __session: requests.Session
 
@@ -48,7 +46,6 @@ class PlexLibraryProcessor:
 
     pathLibrary: Path
 
-    thePostDbSearchCache: dict
 
     ###############################################################################################
     def __init__(self) -> None:
@@ -57,22 +54,27 @@ class PlexLibraryProcessor:
 
         self.__stats = PlexStats()
 
+        self._itemProcessedCache = dict()
+
         self.templateManager = TemplateManager(
             globalSettingsMgr.settings.templates.getTemplateRootPath()
         )
 
+    ###############################################################################################
+
     def process(self):
         self.__stats.timerProgram.start()
 
-        self.connectToServer()
+        self._connectToServer()
 
+        
         if globalSettingsMgr.settings.plex.libraries is None:
-            self._logger.warn(
-                "No plex libraries defined to process.  Please check your configuration"
+            self._logger.debug(
+                "Loading Library list from plex."
             )
-            return
+            globalSettingsMgr.settings.plex.libraries = sorted([str(x.title) for x in self.plexServer.library.sections() if x.type == "movie" or x.type == "show"])
 
-        self._logger.debug(
+        self._logger.info(
             "Libraries to process: {}".format(
                 ",".join(globalSettingsMgr.settings.plex.libraries)
             )
@@ -80,12 +82,13 @@ class PlexLibraryProcessor:
         for libraryName in globalSettingsMgr.settings.plex.libraries:
             self._processLibrary(libraryName)
 
-        self.__stats.timerProgram.end()
+        self.__stats.timerProgram.stop()
         self.__stats.calcTotals()
 
         self._displayStats()
 
-    def connectToServer(self):
+    ###############################################################################################
+    def _connectToServer(self):
         self._logger.info(
             "Connection to plex server: {}".format(
                 globalSettingsMgr.settings.plex.serverUrl
@@ -100,7 +103,6 @@ class PlexLibraryProcessor:
             session=self.__session,
         )
 
-    ###############################################################################################
     def _loadLibrary(self, libraryName: str) -> LibrarySection:
         self._logger.debug("Loading plex library: {}".format(libraryName))
 
@@ -114,108 +116,31 @@ class PlexLibraryProcessor:
 
         self._logger.debug("Library Path: '{}'".format(self.pathLibrary))
 
-        tplFiles = globalSettingsMgr.settings.templates.metadata.getByItemType(
-            "library"
-        )
-
-        fileNameJson = Path(self.pathLibrary, "{}.json".format(libraryName))
-
-        if (
-            tplFiles.jsonFileName is not None
-            and globalSettingsMgr.settings.generate.enableJson
-        ):
-            self.templateManager.renderAndSave(
-                tplFiles.jsonFileName, fileNameJson, {"library": self.plexLibrary}
+        if globalSettingsMgr.settings.generate.enableJson:
+            tplFiles = globalSettingsMgr.settings.templates.metadata.getByItemType(
+                "library"
             )
 
+            fileNameJson = Path(self.pathLibrary, "{}.json".format(libraryName))
+
+            if (
+                tplFiles.jsonFileName is not None
+                and globalSettingsMgr.settings.generate.enableJson
+            ):
+                self.templateManager.renderAndSave(
+                    tplFiles.jsonFileName, fileNameJson, {"library": self.plexLibrary}
+                )
+
         return self.plexLibrary
-
-    def _saveThePosterDbSeachCache(self):
-        if not globalSettingsMgr.settings.generate.enaleThePosterDb:
-            self._logger.debug("Skipping Saving ThPosterDb Search Data...")
-            return
-        
-        self._logger.info("Saving ThePosterDb Search Data")
-
-        tplFiles = globalSettingsMgr.settings.templates.thePosterDatabase
-        if tplFiles is None:
-            self._logger.warn("No PosterDatabase Templates specifed")
-            return
-
-        try:
-            for key in self.thePostDbSearchCache:
-                self.thePostDbSearchCache[key] = sorted(
-                    self.thePostDbSearchCache[key], key=lambda x: x["title"]
-                )
-
-                fileNameHtml = Path(
-                    self.pathLibrary,
-                    "{}.{}.html".format(globalSettingsMgr.settings.thePosterDatabase.baseFileName, key),
-                )
-                fileNameJson = Path(
-                    self.pathLibrary,
-                    "{}.{}.json".format(globalSettingsMgr.settings.thePosterDatabase.baseFileName, key),
-                )
-                fileNameYaml = Path(
-                    self.pathLibrary,
-                    "{}.{}.yaml".format(globalSettingsMgr.settings.thePosterDatabase.baseFileName, key),
-                )
-
-                if tplFiles.jsonFileName is not None and len(tplFiles.jsonFileName) > 0:
-                    self.templateManager.renderAndSave(
-                        tplFiles.jsonFileName,
-                        fileNameJson,
-                        tplArgs={"items": self.thePostDbSearchCache[key]},
-                    )
-
-                if tplFiles.htmlFileName is not None and len(tplFiles.htmlFileName) > 0:
-                    self.templateManager.renderAndSave(
-                        tplFiles.htmlFileName,
-                        fileNameHtml,
-                        tplArgs={"items": self.thePostDbSearchCache[key]},
-                    )
-
-                if tplFiles.yamlFileName is not None and len(tplFiles.yamlFileName) > 0:
-                    self.templateManager.renderAndSave(
-                        tplFiles.yamlFileName,
-                        fileNameYaml,
-                        tplArgs={"items": self.thePostDbSearchCache[key]},
-                    )
-        except:
-            self._logger.exception("Failed storing the posterdatabase cache")
-
-    def _addItemToThePosterDbSearchCache(self, item):
-        ids = [o.id for o in item.guids]
-
-        tpdbEntry = {
-            "title": item.title,
-            "searchUrl": generateTpDbUrl(item),
-            "ids": ids,
-        }
-
-        if self.plexLibrary.type not in self.thePostDbSearchCache.keys():
-            self.thePostDbSearchCache[self.plexLibrary.type] = []
-
-        it = next(
-            (
-                x
-                for x in self.thePostDbSearchCache[self.plexLibrary.type]
-                if x["title"] == item.title
-            ),
-            None,
-        )
-        if it is None:
-            self.thePostDbSearchCache[self.plexLibrary.type].append(tpdbEntry)
 
     def _processLibrary(self, libraryName: str):
         self._logger.info("-" * 50)
         self._logger.info("Started Processing Library: '{}'".format(libraryName))
 
         self.__stats.initLibrary(libraryName)
+        self._itemProcessedCache.update({ libraryName : list() })
 
         self.__stats.timerLibraries[libraryName].start()
-
-        self.thePostDbSearchCache = dict()
 
         self._loadLibrary(libraryName)
 
@@ -225,64 +150,49 @@ class PlexLibraryProcessor:
         self.__stats.countsLibraries[libraryName].collections.total = len(collections)
 
         for collection in collections:
-            self.__stats.countsLibraries[libraryName].collections.processed += 1
-            if not isPMMItem(collection) and collection.childCount > 0:
-                try:
-                    self._processCollection(collection.title, collection)
-                except:
-                    self._logger.exception(
-                        "Error Processing Collection: {}".format(collection.title)
-                    )
-            else:
-                self._logger.info(
-                    "  Skipping Dynamic Collecton: {}".format(collection.title)
+            try:
+                self._processCollection(collection.title, collection)
+            except:
+                self._logger.exception(
+                    "Error Processing Collection: {}".format(collection.title)
                 )
 
         self._logger.info("Processing Library Items")
         items = self.plexLibrary.all()
 
         self.__stats.countsLibraries[libraryName].items.total = len(items)
+        self.__stats.countsLibraries[libraryName].calcTotals()
 
         for item in items:
-            self.__stats.countsLibraries[libraryName].items.processed += 1
-
-            if len(item.collections) == 0:
-                self._logger.info(
-                    "Skipping '{}' Metdata for {} ({}). Member of a collection".format(
-                        item.type, item.title, item.year
-                    )
+            try:
+                self._processMetadata(item.title, [item])
+            except:
+                self._logger.exception(
+                    "Error Processing Item: {}".format(item.title)
                 )
-            elif isPMMItem(item):
-                self._logger.info(
-                    "Skipping '{}' Metdata for {} ({}). Dynamic item".format(
-                        item.type, item.title, item.year
-                    )
-                )
-            else:
-                try:
-                    self._processMetadata(item.title, [item])
-                except:
-                    self._logger.exception(
-                        "Error Processing Item: {}".format(item.title)
-                    )
 
+        self.__stats.timerLibraries[libraryName].stop()
+
+        self.__stats.countsLibraries[libraryName].calcTotals()
         self._saveThePosterDbSeachCache()
 
-        self.__stats.timerLibraries[libraryName].end()
-
     def _processCollection(self, itemTitle: str, item):
+        self.__stats.countsLibraries[self.plexLibraryName].collections.processed += 1
+
         title = _cleanTitle(itemTitle)
 
-        fileName = Path(self.pathLibrary, "collections", "{}.yml".format(title))
-        fileNameJson = Path(
-            self.pathLibrary, "collections/json", "{}.json".format(title)
-        )
-
+        if isPMMItem(item) or item.childCount == 0:
+            self._logger.info(
+                "[{}/{}] Skipping Dynamic/Empty Collecton: {}".format(
+                    self.__stats.countsLibraries[self.plexLibraryName].collections.processed,
+                    self.__stats.countsLibraries[self.plexLibraryName].collections.total,
+                    item.title)
+            )
+            return 
+        
         self._logger.info(
             "[{}/{}] Processing Collection: {}".format(
-                self.__stats.countsLibraries[
-                    self.plexLibraryName
-                ].collections.processed,
+                self.__stats.countsLibraries[self.plexLibraryName].collections.processed,
                 self.__stats.countsLibraries[self.plexLibraryName].collections.total,
                 itemTitle,
             )
@@ -295,13 +205,14 @@ class PlexLibraryProcessor:
             "tplFiles: {}".format(jsonpickle.dumps(tplFiles, unpicklable=False))
         )
 
-        self._logger.debug("tplFileNameYaml: {}".format(tplFiles.yamlFileName))
+        fileName = Path(self.pathLibrary, "collections", "{}.yml".format(title))
         if (
             not os.path.exists(fileName)
             and tplFiles.yamlFileName is not None
             and globalSettingsMgr.settings.generate.enableYaml
         ):
-            self._logger.info("  Generating Collection file")
+            self._logger.debug("  Generating Collection file")
+            
             self.templateManager.renderAndSave(
                 tplFiles.yamlFileName, fileName, tplArgs={"item": item}
             )
@@ -312,16 +223,16 @@ class PlexLibraryProcessor:
             # pmmCfgMgr.mergeCollection(itemTitle, item)
             pass
         elif not globalSettingsMgr.settings.generate.enableYaml:
-            self._logger.debug("  Skipping Geerating Collection yaml file")
+            self._logger.debug("  Skipping Generating Collection yaml file")
         else:
             self._logger.warn("  Collection File Exists")
 
-        self._logger.debug("tplFileNameJson: {}".format(tplFiles.jsonFileName))
+        fileNameJson = Path(self.pathLibrary, "collections/json", "{}.json".format(title))
         if (
             tplFiles.jsonFileName is not None
             and globalSettingsMgr.settings.generate.enableJson
         ):
-            self._logger.info("  Generating json file")
+            self._logger.debug("  Generating json file")
             self.templateManager.renderAndSave(
                 tplFiles.jsonFileName, fileNameJson, tplArgs={"item": item}
             )
@@ -346,35 +257,53 @@ class PlexLibraryProcessor:
         tplFiles = globalSettingsMgr.settings.templates.metadata.getByItemType(
             self.plexLibrary.type
         )
-
+        
         itemsWithExtras = []
         for item in items:
             self.__stats.countsLibraries[self.plexLibraryName].items.processed += 1
-            self._logger.info(
-                "[{}/{}] Processing {}: {} ({})".format(
-                    self.__stats.countsLibraries[self.plexLibraryName].items.processed,
-                    self.__stats.countsLibraries[self.plexLibraryName].items.total,
-                    item.type,
-                    item.title,
-                    item.year,
+
+            if isPMMItem(item):
+                self._logger.info(
+                    "[{}/{}] Skipping '{}': {}. Dynamic item".format(
+                        self.__stats.countsLibraries[self.plexLibraryName].items.processed,
+                        self.__stats.countsLibraries[self.plexLibraryName].items.total,
+                        item.type, _formatItemTitle(item)
+                    )
                 )
-            )
+            elif self._isItemProcessed(item):                                 
+                self._logger.info(
+                    "[{}/{}] Skipping {}: {}. Already Processed".format(
+                        self.__stats.countsLibraries[self.plexLibraryName].items.processed,
+                        self.__stats.countsLibraries[self.plexLibraryName].items.total,
+                        item.type,
+                        _formatItemTitle(item)
+                    )
+                )
+            else:
+                self._logger.info(
+                    "[{}/{}] Processing {}: {}".format(
+                        self.__stats.countsLibraries[self.plexLibraryName].items.processed,
+                        self.__stats.countsLibraries[self.plexLibraryName].items.total,
+                        item.type,
+                        _formatItemTitle(item)
+                    )
+                )
 
-            self._addItemToThePosterDbSearchCache(item)
+                self._adItemToProcessedCache(item)
 
-            seasons = []
-            if "childCount" in item.__dict__:
-                self._logger.info("  Loading Seasons...")
-                seasons = item.seasons()
+                seasons = []
+                if "childCount" in item.__dict__:
+                    self._logger.debug("  Loading Seasons...")
+                    seasons = item.seasons()
 
-            itemsWithExtras.append({"metadata": item, "seasons": seasons})
+                itemsWithExtras.append({"metadata": item, "seasons": seasons})
 
         if (
             not os.path.exists(fileName)
             and tplFiles.yamlFileName is not None
             and globalSettingsMgr.settings.generate.enableYaml
         ):
-            self._logger.info("  Generating Metdata file")
+            self._logger.debug("  Generating Metdata file")
             self.templateManager.renderAndSave(
                 tplFiles.yamlFileName, fileName, tplArgs={"items": itemsWithExtras}
             )
@@ -382,16 +311,98 @@ class PlexLibraryProcessor:
         #     # Do we want to try to merge here?
         #     pass
         else:
-            self._logger.warn("  Metadata File Exists")
+            self._logger.debug("  Metadata File Exists")
 
         if (
             tplFiles.jsonFileName is not None
             and globalSettingsMgr.settings.generate.enableJson
         ):
-            self._logger.info("  Generating json file")
+            self._logger.debug("  Generating json file")
             self.templateManager.renderAndSave(
                 tplFiles.jsonFileName, fileNameJson, tplArgs={"items": itemsWithExtras}
             )
+
+    def _isItemProcessed(self, item) -> bool:
+        it = next(
+            (
+                x
+                for x in self._itemProcessedCache[self.plexLibraryName]
+                if x["title"] ==  _formatItemTitle(item)
+            ),
+            None,
+        )
+
+        return it is not None 
+            
+    def _adItemToProcessedCache(self, item):
+        ids = [o.id for o in item.guids]
+
+        if self.plexLibraryName not in self._itemProcessedCache.keys():
+            self._itemProcessedCache[self.plexLibraryName] = []
+
+        if not self._isItemProcessed(item):
+            tpdbEntry = {
+                "title":  _formatItemTitle(item),
+                "searchUrl": generateTpDbUrl(item),
+                "ids": ids,
+            }
+
+            self._itemProcessedCache[self.plexLibraryName].append(tpdbEntry)
+
+    def _saveThePosterDbSeachCache(self):
+        if not globalSettingsMgr.settings.generate.enaleThePosterDb:
+            self._logger.debug("Skipping Saving ThPosterDb Search Data...")
+            return
+
+        self._logger.info("Saving ThePosterDb Search Data")
+
+        tplFiles = globalSettingsMgr.settings.templates.thePosterDatabase
+        if tplFiles is None:
+            self._logger.warn("No PosterDatabase Templates specifed")
+            return
+
+        try:
+            self._itemProcessedCache[self.plexLibraryName] = sorted(
+                self._itemProcessedCache[self.plexLibraryName], key=lambda x: x["title"]
+            )
+
+            fileNameJson = Path(self.pathLibrary, "{}.json".format(globalSettingsMgr.settings.thePosterDatabase.baseFileName) )
+            if tplFiles.jsonFileName is not None and len(tplFiles.jsonFileName) > 0:
+                self.templateManager.renderAndSave(
+                    tplFiles.jsonFileName,
+                    fileNameJson,
+                    tplArgs={
+                        "items": self._itemProcessedCache[self.plexLibraryName],
+                        "stats": json.loads(str(jsonpickle.dumps(self.__stats.countsLibraries[self.plexLibraryName], unpicklable=False))),
+                        "processingTime": self.__stats.timerLibraries[self.plexLibraryName].to_dict()
+                    }
+                )
+
+            fileNameHtml = Path(self.pathLibrary, "{}.html".format(globalSettingsMgr.settings.thePosterDatabase.baseFileName) )
+            if tplFiles.htmlFileName is not None and len(tplFiles.htmlFileName) > 0:
+                self.templateManager.renderAndSave(
+                    tplFiles.htmlFileName,
+                    fileNameHtml,
+                    tplArgs={
+                        "items": self._itemProcessedCache[self.plexLibraryName],
+                        "stats": json.loads(str(jsonpickle.dumps(self.__stats.countsLibraries[self.plexLibraryName], unpicklable=False))),
+                        "processingTime": self.__stats.timerLibraries[self.plexLibraryName].to_dict()
+                    }
+                )
+
+            fileNameYaml = Path(self.pathLibrary, "{}.yaml".format(globalSettingsMgr.settings.thePosterDatabase.baseFileName) )
+            if tplFiles.yamlFileName is not None and len(tplFiles.yamlFileName) > 0:
+                self.templateManager.renderAndSave(
+                    tplFiles.yamlFileName,
+                    fileNameYaml,
+                    tplArgs={
+                        "items": self._itemProcessedCache[self.plexLibraryName],
+                        "stats": json.loads(str(jsonpickle.dumps(self.__stats.countsLibraries[self.plexLibraryName], unpicklable=False))),
+                        "processingTime": self.__stats.timerLibraries[self.plexLibraryName].to_dict()
+                    }
+                )
+        except:
+            self._logger.exception("Failed storing the posterdatabase cache")
 
     def _displayHeader(self):
         self._logger.info("-" * 50)
@@ -406,7 +417,9 @@ class PlexLibraryProcessor:
         self._logger.info("Overall Statistics")
 
         self._logger.info(
-            "  Processing Time: {:.2f} seconds".format(self.__stats.timerProgram.delta)
+            "  Total Processing Time: {}".format(
+                    self.__stats.timerProgram.elapsed_time_ts.to_str() 
+                )            
         )
         self._logger.info(
             "  Collections Processed: {}".format(
@@ -424,8 +437,9 @@ class PlexLibraryProcessor:
             self._logger.info("Statistics for Library: '{}'".format(libraryName))
 
             self._logger.info(
-                "  Processing Time: '{}'. Total Time: {:.2f} seconds".format(
-                    libraryName, libraryTimer.delta
+                "  Processing Time: '{}'. Total Time: {}".format(
+                    libraryName, 
+                    libraryTimer.elapsed_time_ts.to_str()
                 )
             )
 

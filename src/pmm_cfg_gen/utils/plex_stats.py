@@ -1,25 +1,11 @@
 #!/usr/bin/env python3
 ###################################################################################################
 
-import time
+# from datetime import timedelta
+# import time
+from pmm_cfg_gen.utils.timer import timer
 
 ###################################################################################################
-
-
-class PlexStatsTimer:
-    __timerStart: float
-    __timerEnd: float
-
-    def start(self):
-        self.__timerStart = time.perf_counter()
-
-    def end(self):
-        self.__timerEnd = time.perf_counter()
-
-    @property
-    def delta(self) -> float:
-        return self.__timerEnd - self.__timerStart
-
 
 class PlexStatsTotals:
     total: int
@@ -32,7 +18,6 @@ class PlexStatsTotals:
     def _addStats(self, stats):
         self.total += stats.total
         self.processed += stats.processed
-
 
 class PlexStatsLibraryTotals:
     totals: PlexStatsTotals
@@ -49,23 +34,22 @@ class PlexStatsLibraryTotals:
         self.totals.total = self.collections.total + self.items.total
         self.totals.processed = self.collections.processed + self.items.processed
 
-
 class PlexStats:
-    timerProgram: PlexStatsTimer
-    timerLibraries: dict[str, PlexStatsTimer]
+    timerProgram: timer
+    timerLibraries: dict[str, timer]
 
     countsProgram: PlexStatsLibraryTotals
     countsLibraries: dict[str, PlexStatsLibraryTotals]
 
     def __init__(self) -> None:
-        self.timerProgram = PlexStatsTimer()
+        self.timerProgram = timer()
         self.timerLibraries = {}
 
         self.countsProgram = PlexStatsLibraryTotals()
         self.countsLibraries = {}
 
     def initLibrary(self, libraryName: str):
-        self.timerLibraries[libraryName] = PlexStatsTimer()
+        self.timerLibraries[libraryName] = timer()
         self.countsLibraries[libraryName] = PlexStatsLibraryTotals()
 
     def calcTotals(self):

@@ -123,7 +123,13 @@ class SettingsGenerate:
     enableHtml: bool
     enaleThePosterDb: bool
 
-    def __init__(self, enableJson: bool, enableYaml: bool, enableHtml: bool, enableThePosterDb: bool) -> None:
+    def __init__(
+        self,
+        enableJson: bool,
+        enableYaml: bool,
+        enableHtml: bool,
+        enableThePosterDb: bool,
+    ) -> None:
         self.enableJson = enableJson
         self.enableYaml = enableYaml
         self.enableHtml = enableHtml
@@ -209,7 +215,11 @@ class SettingsManager:
                 dbAssetUrl=expandvars(
                     self._config["thePosterDatabase"]["dbAssetUrl"].as_str()
                 ),
-                baseFileName=str(self._config["thePosterDatabase"]["baseFileName"].get(confuse.Optional("thePosterDatabase"))),
+                baseFileName=str(
+                    self._config["thePosterDatabase"]["baseFileName"].get(
+                        confuse.Optional("thePosterDatabase")
+                    )
+                ),
             ),
             templates=SettingsTemplates(
                 collections=SettingsTemplateFileGroup(

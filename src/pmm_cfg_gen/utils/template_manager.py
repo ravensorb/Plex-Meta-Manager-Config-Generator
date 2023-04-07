@@ -25,7 +25,7 @@ def itemToJson(item):
 
 
 def formatJson(data):
-    return jsonpickle.dumps(data, indent=4)
+    return jsonpickle.dumps(data, indent=4, unpicklable=False)
 
 
 def generateTpDbUrl(item, baseUrl=None) -> str:
@@ -34,19 +34,24 @@ def generateTpDbUrl(item, baseUrl=None) -> str:
 
     urlParms = {}
 
-    if item.type == "movie":
+    if item.type == "collection":
+        if item.metadataType == "movie":
+            urlParms.update({"category": "Movies"})
+            urlParms.update({"term": "{}{}".format(item.title, " collection" if "collection" not in item.title else "")})
+        elif item.metadataType == "show":
+            urlParms.update({"category": "Shows"})
+            urlParms.update({"term": "{}{}".format(item.title, " collection" if "collection" not in item.title else "")})
+    elif item.type == "movie":
         urlParms.update({"category": "Movies"})
         urlParms.update({"term": item.title})
         urlParms.update({"year_filter": "equals"})
         urlParms.update({"yone": item.year})
-
-    if item.type == "show":
+    elif item.type == "show":
         urlParms.update({"category": "Shows"})
         urlParms.update({"term": item.title})
         urlParms.update({"year_filter": "equals"})
         urlParms.update({"yone": item.year})
-
-    if item.type == "season":
+    elif item.type == "season":
         urlParms.update({"category": "Shows"})
         urlParms.update({"term": "{} {}".format(item.title, item.parentTitle)})
 
@@ -60,6 +65,8 @@ def generateTpDbUrl(item, baseUrl=None) -> str:
         if "tvdb" in ids.keys():
             urlParms.update({"tvdb_id": ids["tvdb"]})
 
+    #logging.getLogger("pmm-cfg-gen").info(urlParms)
+    
     urlQS = urllib.parse.urlencode(urlParms)
 
     req = requests.PreparedRequest()
