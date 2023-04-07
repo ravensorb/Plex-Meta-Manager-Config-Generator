@@ -75,4 +75,4 @@ class timer(ContextDecorator):
         self.stop()
 
     def to_dict(self):
-        return { "start": self._start_time, "end": self._end_time, "elapsed": self._elapsed_time }
+        return { "start": self._start_time, "end": self._end_time, "elapsed": self._elapsed_time.to_dict() }

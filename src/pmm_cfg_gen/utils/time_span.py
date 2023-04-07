@@ -7,7 +7,9 @@ import time
 #######################################################################
 
 class timespan:
-    __totalTimeInSeconds : float 
+    __maxWeeks: int = 99999999999
+
+    __totalTimeInSeconds : float
 
     __weeks : int
     __days : int 
@@ -78,40 +80,31 @@ class timespan:
             "totalTimeInSeconds": self.__totalTimeInSeconds
         }
 
-    def to_str(self):
-        seconds = self.__totalTimeInSeconds
-        
-        t= []
-        for dm in (60, 60, 24, 7):
-            seconds, m = divmod(seconds, dm)      
-            t.append(m)
-        t.append(seconds)
-
+    def to_str(self):       
         return ', '.join('%d %s' % (num, unit)
-			 for num, unit in zip(t[::-1], 'wk d hr min sec'.split())
-			 if num)
+		     for num, unit in zip([(self.total_seconds // d) % m
+					   for d, m in ((604800, self.__maxWeeks), 
+                                                        (86400, 7), (3600, 24), 
+                                                        (60, 60), (1, 60))],
+					  ['wk', 'd', 'hr', 'min', 'sec'])
+		     if num)
  
-    def __refresh(self):
-        tempTotalTimeInSeconds = self.__totalTimeInSeconds
+    def __refresh(self):       
+        result = [(num, unit) for num, unit in zip([(self.__totalTimeInSeconds // d) % m
+					   for d, m in ((604800, self.__maxWeeks), 
+                                                        (86400, 7), (3600, 24), 
+                                                        (60, 60), (1, 60))],
+					  ['wk', 'd', 'hr', 'min', 'sec'])
+        ]
 
-        if tempTotalTimeInSeconds > 0:
-            tempTotalTimeInSeconds, m = divmod(tempTotalTimeInSeconds, 60)
-            self.__minutes = int(m)
+        #result.reverse()
 
-        if tempTotalTimeInSeconds > 0:
-            tempTotalTimeInSeconds, m = divmod(tempTotalTimeInSeconds, 60)
-            self.__hours = int(m)
-
-        if tempTotalTimeInSeconds > 0:
-            tempTotalTimeInSeconds, m = divmod(tempTotalTimeInSeconds, 24)
-            self.__days = int(m)
-
-        if tempTotalTimeInSeconds > 0:
-            tempTotalTimeInSeconds, m = divmod(tempTotalTimeInSeconds, 7)
-            self.__weeks = int(m)
-
-        self.__seconds = tempTotalTimeInSeconds
-
+        self.__seconds = result.pop()[0]
+        self.__minutes  = int(result.pop()[0])
+        self.__hours = int(result.pop()[0])
+        self.__days  = int(result.pop()[0])
+        self.__weeks = int(result.pop()[0])
+   
     @property
     def weeks(self): return self.__weeks
     
@@ -145,3 +138,6 @@ def time_span_tests():
 
     print(ts.to_dict())
     print(ts.to_str())
+
+if __name__ == "__main__":
+    time_span_tests()
