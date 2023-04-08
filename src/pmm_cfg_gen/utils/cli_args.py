@@ -22,10 +22,10 @@ globalArgParser.add_argument(
     help="Enabled generating json files for each item processed (default: %(default)s)",
 )
 globalArgParser.add_argument(
-    "--generate.enableThePosterDb",
+    "--generate.enableItemReport",
     action="store_true",
     default=False,
-    help="Enabled generating thePosterDb report (default: %(default)s)",
+    help="Enabled generating item report (default: %(default)s)",
 )
 
 globalArgParser.add_argument(

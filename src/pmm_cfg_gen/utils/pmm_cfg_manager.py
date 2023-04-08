@@ -10,7 +10,7 @@ import ruamel.yaml
 from pmm_cfg_gen.utils.fileutils import formatLibraryItemPath, writeFile
 from pmm_cfg_gen.utils.plex_utils import _cleanTitle, isPMMItem
 from pmm_cfg_gen.utils.settings_yml import globalSettingsMgr
-from pmm_cfg_gen.utils.template_manager import TemplateManager, generateTpDbUrl
+from pmm_cfg_gen.utils.template_manager import TemplateManager, generateTpDbSearchUrl
 
 
 ###################################################################################################
@@ -49,7 +49,7 @@ class PlexMetaManager:
                 for it in data[0]:
                     self._logger.info(ruamel.yaml.dump(it))
                     data["collections"][it].yaml_set_comment_before_after_key(
-                        "template", after=format(generateTpDbUrl(item)), after_indent=2
+                        "template", after=format(generateTpDbSearchUrl(item)), after_indent=2
                     )
 
             with open(fileName, "w") as fp:
@@ -68,7 +68,7 @@ class PlexMetaManager:
                 for it in data["metadata"]:
                     data["metadata"][it].yaml_set_comment_before_after_key(
                         "url_poster",
-                        after=format(generateTpDbUrl(item)),
+                        after=format(generateTpDbSearchUrl(item)),
                         after_indent=2,
                     )
                     data["metadata"][it].yaml_set_comment_before_after_key(

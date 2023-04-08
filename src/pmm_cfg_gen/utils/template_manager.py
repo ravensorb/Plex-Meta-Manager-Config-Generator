@@ -23,12 +23,10 @@ def itemToJson(item):
 
     return str
 
-
 def formatJson(data):
     return jsonpickle.dumps(data, indent=4, unpicklable=False)
 
-
-def generateTpDbUrl(item, baseUrl=None) -> str:
+def generateTpDbSearchUrl(item, baseUrl = None) -> str:
     if baseUrl is None:
         baseUrl = globalSettingsMgr.settings.thePosterDatabase.searchUrl
 
@@ -74,9 +72,17 @@ def generateTpDbUrl(item, baseUrl=None) -> str:
 
     return str(req.url)
 
+def getItemGuidByName(item, guidName : str) -> str | None: 
+    try:
+        ids = dict(o.id.split("://") for o in item.guids)
+
+        return ids[guidName] if guidName in ids.keys() else ""
+    except:
+        pass 
+    
+    return "" 
 
 #######################################################################
-
 
 class TemplateManager:
     __tplEnv: jinja2.Environment
@@ -139,8 +145,13 @@ class TemplateManager:
                 tpl = self.__tplEnv.get_template(str(templateName))
 
                 self.__cachedTemplates[templateName] = tpl
+            except jinja2.TemplateSyntaxError as exTpl:
+                self._logger.error("Failed to load template: '{}'. Exception: {}".format(templateName, str(exTpl)))
+                if self._logger.isEnabledFor(logging.DEBUG):
+                    self._logger.exception("Template Syntax Error: '{}'".format(templateName))
             except:
-                self._logger.debug("Failed to load template: {}".format(templateName))
+                if self._logger.isEnabledFor(logging.DEBUG):
+                    self._logger.exception("Failed to load template: '{}'".format(templateName))
 
                 return None
 
@@ -155,4 +166,5 @@ class TemplateManager:
         self.__tplEnv.filters["plexToJson"] = itemToJson
         self.__tplEnv.filters["isPMMItem"] = isPMMItem
         self.__tplEnv.filters["formatJson"] = formatJson
-        self.__tplEnv.filters["generateTpDbUrl"] = generateTpDbUrl
+        self.__tplEnv.filters["generateTpDbSearchUrl"] = generateTpDbSearchUrl
+        self.__tplEnv.filters["getItemGuidByName"] = getItemGuidByName

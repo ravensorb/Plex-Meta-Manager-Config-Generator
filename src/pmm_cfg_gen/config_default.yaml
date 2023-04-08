@@ -21,13 +21,19 @@ templates:
       jsonFileName: tvshows.metadata.json.j2
     library:
       jsonFileName: library.json.j2
-  thePosterDatabase:
-    jsonFileName: thePosterDatabase.json.j2
-    htmlFileName: thePosterDatabase.html.j2
+  reports:
+    collection:
+      jsonFileName: collection.report.json.j2
+      htmlFileName: collection.report.html.j2
+    metadata:
+      jsonFileName: metadata.report.json.j2
+      htmlFileName: metadata.report.html.j2
 output:
   path: "./data"
   pathFormat: "{{libraryTitle}}"
+  itemReportBaseName: itemreport
+  collectionReportBaseName: collectionreport
 generate:
   enableJson: False
   enableYaml: True
-  enableThePosterDb: True
+  enableItemReport: True

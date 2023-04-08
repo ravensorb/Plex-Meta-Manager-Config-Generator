@@ -131,3 +131,4 @@ dmypy.json
 # Custom
 data*
 tmp/
+report*.j2

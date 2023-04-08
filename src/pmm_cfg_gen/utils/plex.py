@@ -18,9 +18,9 @@ from pmm_cfg_gen.utils.fileutils import formatLibraryItemPath
 from pmm_cfg_gen.utils.plex_stats import (
     PlexStats
 )
-from pmm_cfg_gen.utils.plex_utils import _cleanTitle, isPMMItem, _formatItemTitle
+from pmm_cfg_gen.utils.plex_utils import _cleanTitle, isPMMItem, _formatItemTitle, PlexItemHelper
 from pmm_cfg_gen.utils.settings_yml import globalSettingsMgr
-from pmm_cfg_gen.utils.template_manager import TemplateManager, generateTpDbUrl
+from pmm_cfg_gen.utils.template_manager import TemplateManager, generateTpDbSearchUrl
 
 ###################################################################################################
 
@@ -31,6 +31,8 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 ###################################################################################################
 class PlexLibraryProcessor:
     _logger: logging.Logger
+
+    __collectionProcessedCache: dict[str, list]
     _itemProcessedCache: dict[str,list]
 
     __session: requests.Session
@@ -53,6 +55,7 @@ class PlexLibraryProcessor:
 
         self.__stats = PlexStats()
 
+        self.__collectionProcessedCache = dict()
         self._itemProcessedCache = dict()
 
         self.templateManager = TemplateManager(
@@ -137,6 +140,7 @@ class PlexLibraryProcessor:
         self._logger.info("Started Processing Library: '{}'".format(libraryName))
 
         self.__stats.initLibrary(libraryName)
+        self.__collectionProcessedCache.update({ libraryName : list() })
         self._itemProcessedCache.update({ libraryName : list() })
 
         self.__stats.timerLibraries[libraryName].start()
@@ -175,7 +179,8 @@ class PlexLibraryProcessor:
         self.__stats.timerLibraries[libraryName].stop()
 
         self.__stats.countsLibraries[libraryName].calcTotals()
-        self._saveThePosterDbSeachCache()
+        self._saveCollectionReport()
+        self._saveItemReport()
 
     def _processCollection(self, itemTitle: str, item):
         self.__stats.countsLibraries[self.plexLibraryName].collections.processed += 1
@@ -198,6 +203,8 @@ class PlexLibraryProcessor:
                 itemTitle,
             )
         )
+
+        self._addCollectionToProcessedCache(item)
 
         tplFiles = globalSettingsMgr.settings.templates.collections.getByItemType(
             self.plexLibrary.type
@@ -290,7 +297,7 @@ class PlexLibraryProcessor:
                     )
                 )
 
-                self._adItemToProcessedCache(item)
+                self._addItemToProcessedCache(item)
 
                 seasons = []
                 if "childCount" in item.__dict__:
@@ -299,29 +306,42 @@ class PlexLibraryProcessor:
 
                 itemsWithExtras.append({"metadata": item, "seasons": seasons})
 
-        if (
-            not os.path.exists(fileName)
-            and tplFiles.yamlFileName is not None
-            and globalSettingsMgr.settings.generate.enableYaml
-        ):
-            self._logger.debug("  Generating Metdata file")
-            self.templateManager.renderAndSave(
-                tplFiles.yamlFileName, fileName, tplArgs={"items": itemsWithExtras}
-            )
-        # elif os.path.exists(fileName):
-        #     # Do we want to try to merge here?
-        #     pass
-        else:
-            self._logger.debug("  Metadata File Exists")
+        # Do we have anything we need to process
+        if len(itemsWithExtras) > 0:
+            if (not os.path.exists(fileName)
+                and tplFiles.yamlFileName is not None
+                and globalSettingsMgr.settings.generate.enableYaml
+            ):
+                self._logger.debug("  Generating Metdata file")
+                self.templateManager.renderAndSave(
+                    tplFiles.yamlFileName, fileName, tplArgs={"items": itemsWithExtras}
+                )
+            # elif os.path.exists(fileName):
+            #     # Do we want to try to merge here?
+            #     pass
+            else:
+                self._logger.debug("  Metadata File Exists")
 
-        if (
-            tplFiles.jsonFileName is not None
-            and globalSettingsMgr.settings.generate.enableJson
-        ):
-            self._logger.debug("  Generating json file")
-            self.templateManager.renderAndSave(
-                tplFiles.jsonFileName, fileNameJson, tplArgs={"items": itemsWithExtras}
-            )
+            if (
+                tplFiles.jsonFileName is not None
+                and globalSettingsMgr.settings.generate.enableJson
+            ):
+                self._logger.debug("  Generating json file")
+                self.templateManager.renderAndSave(
+                    tplFiles.jsonFileName, fileNameJson, tplArgs={"items": itemsWithExtras}
+                )
+
+    def _isCollectionProcessed(self, item) -> bool:
+        it = next(
+            (
+                x
+                for x in self.__collectionProcessedCache[self.plexLibraryName]
+                if x["title"] ==  item.title
+            ),
+            None,
+        )
+
+        return it is not None 
 
     def _isItemProcessed(self, item) -> bool:
         it = next(
@@ -334,9 +354,22 @@ class PlexLibraryProcessor:
         )
 
         return it is not None 
-            
-    def _adItemToProcessedCache(self, item):
-        ids = [o.id for o in item.guids]
+
+    def _addCollectionToProcessedCache(self, item):
+        if self.plexLibraryName not in self.__collectionProcessedCache.keys():
+            self.__collectionProcessedCache[self.plexLibraryName] = []
+
+        if not self._isCollectionProcessed(item):
+            tpdbEntry = {
+                "title":  item.title,
+                "searchUrl": generateTpDbSearchUrl(item),
+                "metadata": item
+            }
+
+            self.__collectionProcessedCache[self.plexLibraryName].append(tpdbEntry)
+        
+    def _addItemToProcessedCache(self, item):
+        pi = PlexItemHelper(item)
 
         if self.plexLibraryName not in self._itemProcessedCache.keys():
             self._itemProcessedCache[self.plexLibraryName] = []
@@ -344,22 +377,78 @@ class PlexLibraryProcessor:
         if not self._isItemProcessed(item):
             tpdbEntry = {
                 "title":  _formatItemTitle(item),
-                "searchUrl": generateTpDbUrl(item),
-                "ids": ids,
+                "searchUrl": generateTpDbSearchUrl(item),
+                "ids": pi.guids,
+                "metadata": item
             }
 
             self._itemProcessedCache[self.plexLibraryName].append(tpdbEntry)
 
-    def _saveThePosterDbSeachCache(self):
-        if not globalSettingsMgr.settings.generate.enaleThePosterDb:
-            self._logger.debug("Skipping Saving ThPosterDb Search Data...")
+    def _saveCollectionReport(self):
+        if not globalSettingsMgr.settings.generate.enableItemReport:
+            self._logger.debug("Skipping Saving Collection Report...")
             return
 
-        self._logger.info("Saving ThePosterDb Search Data")
+        self._logger.info("Saving Collection Report...")
 
-        tplFiles = globalSettingsMgr.settings.templates.thePosterDatabase
+        tplFiles = globalSettingsMgr.settings.templates.reports.collection
         if tplFiles is None:
-            self._logger.warn("No PosterDatabase Templates specifed")
+            self._logger.warn("No Collection Report Templates specifed")
+            return
+
+        try:
+            self.__collectionProcessedCache[self.plexLibraryName] = sorted(
+                self.__collectionProcessedCache[self.plexLibraryName], key=lambda x: x["title"]
+            )
+
+            fileNameJson = Path(self.pathLibrary, "{}.json".format(globalSettingsMgr.settings.output.collectionReportBaseName) )
+            if tplFiles.jsonFileName is not None and len(tplFiles.jsonFileName) > 0:
+                self.templateManager.renderAndSave(
+                    tplFiles.jsonFileName,
+                    fileNameJson,
+                    tplArgs={
+                        "items": self.__collectionProcessedCache[self.plexLibraryName],
+                        "stats": json.loads(str(jsonpickle.dumps(self.__stats.countsLibraries[self.plexLibraryName], unpicklable=False))),
+                        "processingTime": self.__stats.timerLibraries[self.plexLibraryName].to_dict()
+                    }
+                )
+
+            fileNameHtml = Path(self.pathLibrary, "{}.html".format(globalSettingsMgr.settings.output.collectionReportBaseName) )
+            if tplFiles.htmlFileName is not None and len(tplFiles.htmlFileName) > 0:
+                self.templateManager.renderAndSave(
+                    tplFiles.htmlFileName,
+                    fileNameHtml,
+                    tplArgs={
+                        "items": self.__collectionProcessedCache[self.plexLibraryName],
+                        "stats": json.loads(str(jsonpickle.dumps(self.__stats.countsLibraries[self.plexLibraryName], unpicklable=False))),
+                        "processingTime": self.__stats.timerLibraries[self.plexLibraryName].to_dict()
+                    }
+                )
+
+            fileNameYaml = Path(self.pathLibrary, "{}.yaml".format(globalSettingsMgr.settings.output.collectionReportBaseName) )
+            if tplFiles.yamlFileName is not None and len(tplFiles.yamlFileName) > 0:
+                self.templateManager.renderAndSave(
+                    tplFiles.yamlFileName,
+                    fileNameYaml,
+                    tplArgs={
+                        "items": self.__collectionProcessedCache[self.plexLibraryName],
+                        "stats": json.loads(str(jsonpickle.dumps(self.__stats.countsLibraries[self.plexLibraryName], unpicklable=False))),
+                        "processingTime": self.__stats.timerLibraries[self.plexLibraryName].to_dict()
+                    }
+                )
+        except:
+            self._logger.exception("Failed generating collection report")
+
+    def _saveItemReport(self):
+        if not globalSettingsMgr.settings.generate.enableItemReport:
+            self._logger.debug("Skipping Saving Item Report...")
+            return
+
+        self._logger.info("Saving Item Report...")
+
+        tplFiles = globalSettingsMgr.settings.templates.reports.metadata
+        if tplFiles is None:
+            self._logger.warn("No Item Report Templates specifed")
             return
 
         try:
@@ -367,7 +456,7 @@ class PlexLibraryProcessor:
                 self._itemProcessedCache[self.plexLibraryName], key=lambda x: x["title"]
             )
 
-            fileNameJson = Path(self.pathLibrary, "{}.json".format(globalSettingsMgr.settings.thePosterDatabase.baseFileName) )
+            fileNameJson = Path(self.pathLibrary, "{}.json".format(globalSettingsMgr.settings.output.itemReportBaseName) )
             if tplFiles.jsonFileName is not None and len(tplFiles.jsonFileName) > 0:
                 self.templateManager.renderAndSave(
                     tplFiles.jsonFileName,
@@ -379,7 +468,7 @@ class PlexLibraryProcessor:
                     }
                 )
 
-            fileNameHtml = Path(self.pathLibrary, "{}.html".format(globalSettingsMgr.settings.thePosterDatabase.baseFileName) )
+            fileNameHtml = Path(self.pathLibrary, "{}.html".format(globalSettingsMgr.settings.output.itemReportBaseName) )
             if tplFiles.htmlFileName is not None and len(tplFiles.htmlFileName) > 0:
                 self.templateManager.renderAndSave(
                     tplFiles.htmlFileName,
@@ -391,7 +480,7 @@ class PlexLibraryProcessor:
                     }
                 )
 
-            fileNameYaml = Path(self.pathLibrary, "{}.yaml".format(globalSettingsMgr.settings.thePosterDatabase.baseFileName) )
+            fileNameYaml = Path(self.pathLibrary, "{}.yaml".format(globalSettingsMgr.settings.output.itemReportBaseName) )
             if tplFiles.yamlFileName is not None and len(tplFiles.yamlFileName) > 0:
                 self.templateManager.renderAndSave(
                     tplFiles.yamlFileName,
@@ -403,7 +492,7 @@ class PlexLibraryProcessor:
                     }
                 )
         except:
-            self._logger.exception("Failed storing the posterdatabase cache")
+            self._logger.exception("Failed generating item report")
 
     def _displayHeader(self):
         self._logger.info("-" * 50)

@@ -18,10 +18,14 @@ from expandvars import expandvars
 class SettingsOutput:
     path: str
     pathFormat: str
+    itemReportBaseName : str
+    collectionReportBaseName : str
 
-    def __init__(self, path: str, pathFormat: str) -> None:
+    def __init__(self, path: str, pathFormat: str, itemReportBaseName : str, collectionReportBaseName : str) -> None:
         self.path = path
         self.pathFormat = pathFormat
+        self.itemReportBaseName = itemReportBaseName
+        self.collectionReportBaseName = collectionReportBaseName
 
 
 class SettingsPlex:
@@ -51,7 +55,7 @@ class SettingsTemplateFiles:
         self.htmlFileName = htmlFileName
 
 
-class SettingsTemplateFileGroup:
+class SettingsTemplatePlexItemFileGroup:
     movies: SettingsTemplateFiles | None
     shows: SettingsTemplateFiles | None
     library: SettingsTemplateFiles | None
@@ -78,24 +82,35 @@ class SettingsTemplateFileGroup:
             "Unknown item type or template not defined: {}".format(itemType)
         )
 
-
-class SettingsTemplates:
-    templatePath: str | None
-    collections: SettingsTemplateFileGroup
-    metadata: SettingsTemplateFileGroup
-    thePosterDatabase: SettingsTemplateFiles | None
+class SettingsTemplateReportFileGroup:
+    collection: SettingsTemplateFiles | None
+    metadata: SettingsTemplateFiles | None
 
     def __init__(
         self,
-        collections: SettingsTemplateFileGroup,
-        metadata: SettingsTemplateFileGroup,
+        collection: SettingsTemplateFiles | None,
+        metadata: SettingsTemplateFiles | None
+    ) -> None:
+        self.collection = collection
+        self.metadata = metadata
+
+class SettingsTemplates:
+    templatePath: str | None
+    collections: SettingsTemplatePlexItemFileGroup
+    metadata: SettingsTemplatePlexItemFileGroup
+    reports: SettingsTemplateReportFileGroup
+
+    def __init__(
+        self,
+        collections: SettingsTemplatePlexItemFileGroup,
+        metadata: SettingsTemplatePlexItemFileGroup,
+        reports: SettingsTemplateReportFileGroup,
         templatePath: str | None = None,
-        thePosterDatabase: SettingsTemplateFiles | None = None,
     ) -> None:
         self.templatePath = templatePath
         self.collections = collections
         self.metadata = metadata
-        self.thePosterDatabase = thePosterDatabase
+        self.reports = reports
 
     def getTemplateRootPath(self) -> Path:
         if self.templatePath is None or self.templatePath == "pmm_cfg_gen.tempaltes":
@@ -107,33 +122,31 @@ class SettingsTemplates:
 
 
 class SettingsThePosterDatabase:
-    baseFileName: str
     searchUrl: str
     dbAssetUrl: str
 
-    def __init__(self, searchUrl: str, dbAssetUrl: str, baseFileName: str) -> None:
+    def __init__(self, searchUrl: str, dbAssetUrl: str) -> None:
         self.searchUrl = searchUrl
         self.dbAssetUrl = dbAssetUrl
-        self.baseFileName = baseFileName
 
 
 class SettingsGenerate:
     enableJson: bool
     enableYaml: bool
     enableHtml: bool
-    enaleThePosterDb: bool
+    enableItemReport: bool
 
     def __init__(
         self,
         enableJson: bool,
         enableYaml: bool,
         enableHtml: bool,
-        enableThePosterDb: bool,
+        enableItemReport: bool,
     ) -> None:
         self.enableJson = enableJson
         self.enableYaml = enableYaml
         self.enableHtml = enableHtml
-        self.enaleThePosterDb = enableThePosterDb
+        self.enableItemReport = enableItemReport
 
 
 class Settings:
@@ -215,14 +228,9 @@ class SettingsManager:
                 dbAssetUrl=expandvars(
                     self._config["thePosterDatabase"]["dbAssetUrl"].as_str()
                 ),
-                baseFileName=str(
-                    self._config["thePosterDatabase"]["baseFileName"].get(
-                        confuse.Optional("thePosterDatabase")
-                    )
-                ),
             ),
             templates=SettingsTemplates(
-                collections=SettingsTemplateFileGroup(
+                collections=SettingsTemplatePlexItemFileGroup(
                     movies=SettingsTemplateFiles(
                         yamlFileName=str(
                             self._config["templates"]["collections"]["movies"][
@@ -248,7 +256,7 @@ class SettingsManager:
                         ),
                     ),
                 ),
-                metadata=SettingsTemplateFileGroup(
+                metadata=SettingsTemplatePlexItemFileGroup(
                     movies=SettingsTemplateFiles(
                         yamlFileName=str(
                             self._config["templates"]["metadata"]["movies"][
@@ -286,33 +294,62 @@ class SettingsManager:
                         ),
                     ),
                 ),
-                thePosterDatabase=SettingsTemplateFiles(
-                    yamlFileName=str(
-                        self._config["templates"]["thePosterDatabase"][
-                            "yamlFileName"
-                        ].get(confuse.Optional(None))
+                reports=SettingsTemplateReportFileGroup(
+                    collection=SettingsTemplateFiles(
+                        yamlFileName=str(
+                            self._config["templates"]["reports"]["collection"][
+                                "yamlFileName"
+                            ].get(confuse.Optional(None))
+                        ),
+                        jsonFileName=str(
+                            self._config["templates"]["reports"]["collection"][
+                                "jsonFileName"
+                            ].get(confuse.Optional(None))
+                        ),
+                        htmlFileName=str(
+                            self._config["templates"]["reports"]["collection"][
+                                "htmlFileName"
+                            ].get(confuse.Optional(None))
+                        ),
                     ),
-                    jsonFileName=str(
-                        self._config["templates"]["thePosterDatabase"][
-                            "jsonFileName"
-                        ].get(confuse.Optional(None))
-                    ),
-                    htmlFileName=str(
-                        self._config["templates"]["thePosterDatabase"][
-                            "htmlFileName"
-                        ].get(confuse.Optional(None))
+                    metadata=SettingsTemplateFiles(
+                        yamlFileName=str(
+                            self._config["templates"]["reports"]["metadata"][
+                                "yamlFileName"
+                            ].get(confuse.Optional(None))
+                        ),
+                        jsonFileName=str(
+                            self._config["templates"]["reports"]["metadata"][
+                                "jsonFileName"
+                            ].get(confuse.Optional(None))
+                        ),
+                        htmlFileName=str(
+                            self._config["templates"]["reports"]["metadata"][
+                                "htmlFileName"
+                            ].get(confuse.Optional(None))
+                        ),
                     ),
                 ),
             ),
             output=SettingsOutput(
                 path=str(self._config["output"]["path"].as_str()),
                 pathFormat=str(self._config["output"]["pathFormat"].as_str()),
+                collectionReportBaseName=str(
+                    self._config["output"]["collectionReportBaseName"].get(
+                        confuse.Optional("collectionreport")
+                    )
+                ),
+                itemReportBaseName=str(
+                    self._config["output"]["itemReportBaseName"].get(
+                        confuse.Optional("itemreport")
+                    )
+                )
             ),
             generate=SettingsGenerate(
                 enableHtml=self._config["generate"]["enableHtml"].get(confuse.Optional(False)),  # type: ignore
                 enableJson=self._config["generate"]["enableJson"].get(confuse.Optional(False)),  # type: ignore
                 enableYaml=self._config["generate"]["enableYaml"].get(confuse.Optional(True)),  # type: ignore
-                enableThePosterDb=self._config["generate"]["enableThePosterDb"].get(confuse.Optional(True)),  # type: ignore
+                enableItemReport=self._config["generate"]["enableItemReport"].get(confuse.Optional(True)),  # type: ignore
             ),
         )
 
