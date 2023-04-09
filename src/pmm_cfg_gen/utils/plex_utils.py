@@ -94,20 +94,26 @@ class PlexItemHelper:
         self.__parseGuids()
 
     def __parseGuids(self):
-        if "guids" in self.__item.__dict__:
-            self.__guids = dict(o.id.split("://") for o in self.__item.guids)
+        try:
+            if "guids" in self.__item.__dict__:
+                self.__guids = dict(o.id.split("://") for o in self.__item.guids)
+        except:
+            pass 
 
-        if "guid" in self.__item.__dict__ and not self.__guids:
-            #"guid": "com.plexapp.agents.thetvdb://73546?lang=en",
-            try:
-                s = self.__item.guid.replace("com.plexapp.agents.thetvdb://", "")
-                self.__guids["tvdb"] = self.__item.guid.replace("com.plexapp.agents.thetvdb://", "")
+        try:
+            if "guid" in self.__item.__dict__ and not self.__guids:
+                #"guid": "com.plexapp.agents.thetvdb://73546?lang=en",
+                try:
+                    s = self.__item.guid.replace("com.plexapp.agents.thetvdb://", "")
+                    self.__guids["tvdb"] = self.__item.guid.replace("com.plexapp.agents.thetvdb://", "")
 
-                if "?" in self.__guids["tvdb"]:
-                    self.__guids["tvdb"] = str(self.__guids["tvdb"]).split("?")[0]
-            except:
-                pass 
-
+                    if "?" in self.__guids["tvdb"]:
+                        self.__guids["tvdb"] = str(self.__guids["tvdb"]).split("?")[0]
+                except:
+                    pass 
+        except:
+            pass 
+        
         if "tmdb" not in self.__guids: self.__guids["tmdb"] = ""
         if "tvdb" not in self.__guids: self.__guids["tvdb"] = ""
         if "imdb" not in self.__guids: self.__guids["imdb"] = ""               

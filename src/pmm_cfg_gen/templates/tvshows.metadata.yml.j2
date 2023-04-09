@@ -1,4 +1,13 @@
-metadata:               #Posters found here: https://theposterdb.com/user/musikmann2000
+{# external_templates:
+  pmm: templates
+
+templates:
+    tplMovies:
+        title: <<title>>
+        year: <<year>>
+        url_poster: https://theposterdb.com/api/assets/<<poster_id>>
+#}
+metadata:               #Posters found here: {{ item.metadata | generateTpDbSearchUrl }}
 {% for item in items %}
     "{{ item.metadata.title}} ({{ item.metadata.year }})":
         year: {{ item.metadata.year }}
@@ -6,9 +15,10 @@ metadata:               #Posters found here: https://theposterdb.com/user/musikm
         url_poster: https://theposterdb.com/api/assets/
         # IDs: {{ item.metadata.guids | map(attribute="id") | list | join(', ')}}
         # tpdb: {{ item.metadata | generateTpDbSearchUrl }}
-        # tmdb: https://www.themoviedb.org/tv/{{ item.metadata | getItemGuidByName("tmdb") }}
-        # tvdb: https://thetvdb.com/search?menu%5Btype%5D=series&query={{ item.metadata | getItemGuidByName("tvdb") }}
-        # imdb: https://www.imdb.com/title/{{ item.metadata | getItemGuidByName("imdb") }}
+        # tmdb: {% if item.metadata | getItemGuidByName("tmdb") | default("") | length > 0 %}https://www.themoviedb.org/{% if item.metadata.type == "movie" %}movie{% elif item.metadata.type == "show" %}tv{% else %}{% endif %}/{{ item.metadata | getItemGuidByName("tmdb") }}{% endif %}
+        # tvdb: {% if item.metadata | getItemGuidByName("tvdb") | default("") | length > 0 %}https://thetvdb.com/search?menu%5Btype%5D={% if item.metadata.type == "movie"%}movie{% elif item.metadata.type == "show" %}series{% else %}{% endif %}&menu%5Byear%5D={{ item.metadata.year }}&query={{ item.metadata | getItemGuidByName("tvdb") }}{% endif %}
+        # imdb: {% if item.metadata | getItemGuidByName("imdb") | default("") | length > 0 %}https://www.imdb.com/title/{{ item | getItemGuidByName("imdb") }}{% endif %}
+        # trakt: https://trakt.tv/search/{% if item.metadata.type == 'movie'%}movies{% elif item.metadata.type == 'show' %}shows{% else %}{% endif %}?query={{ item.title | urlencode }}
         seasons:
         {%- for season in item.seasons %}
             {{ season.seasonNumber }}:

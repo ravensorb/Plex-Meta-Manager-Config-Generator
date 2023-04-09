@@ -2,28 +2,46 @@ external_templates:
   pmm: templates
   
 templates:
-  tmdbTemplate:
+  tplCommonCollection:
     optional:
     - collection
-    - movie
     - list
-    tmdb_collection_details: <<collection>>
-    tmdb_movie: <<movie>>
-    tmdb_list: <<list>>s
-    trakt_list: <<list>>
-    trakt_list_details: <<list>>
+    move_prefix: The
     sync_mode: sync
     collection_order: release
     url_poster: <<poster>>
+  
+  tplTVDBCollection:
+    optional:
+    - collection
+    - list
+    - show
+    tvdb_show: <<show>>
+    tvdb_show_details: <<show>>
+    tvdb_list: <<list>>
+    tvdb_list_details: <<list>>
+    sort_title: <<collection_name>>
+  
+  tplTMDBCollection:
+    optional:
+    - collection
+    - list
+    - movie
+    tmdb_collection_details: <<collection>>
+    tmdb_movie: <<movie>>
+    tmdb_movie_details: <<movie>>
+    tmdb_list: <<list>>s
+    tmdb_list_details: <<list>>
     sort_title: <<collection_name>>
 
 collections:
   "{{ item.title }}":
-    template: {name: tmdbTemplate, collection: "", movie: "", poster: https://theposterdb.com/api/assets/ }
+    template: { name: [ tplCommon, tplTMDBCollection ], collection: "", list: "", movie: "", poster: https://theposterdb.com/api/assets/ }
     # tpdb: {{ item | generateTpDbSearchUrl }}
     # tmdb: https://www.themoviedb.org/search/collection?query={{ item.title | urlencode}}
     # tvdb: https://thetvdb.com/search?menu%5Btype%5D=list&query={{ item.title | urlencode }}
-    # imdb: https://www.imdb.com/find/?s=tt&ref_=nv_sr_sm&q={{ item.title | urlencode }}
+    # imdb: https://www.imdb.com/find/?s=tt{% if item.subtype == 'movie' %}&ttype=ft{% elif item.subtype == 'show' %}&ttype=tv{% endif %}&q={{ item.title | urlencode }}
+    # trakt: https://trakt.tv/search/lists?query={{ item.title | urlencode }}
     {% if item.childCount != 1 %}# {% endif %}collection_mode: hide
     # trakt_list:
     #  - 

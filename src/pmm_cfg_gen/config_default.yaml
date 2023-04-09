@@ -2,7 +2,9 @@ plex:
   serverUrl: ${PLEX_SERVER:-https://plex.ravenwolf.org:32400}
   token: ${PLEX_TOKEN}
 thePosterDatabase:
-  searchUrl: https://theposterdb.com/search/advanced/results
+  enablePro: True
+  searchUrlPro: https://theposterdb.com/search/advanced/results
+  searchUrl: https://theposterdb.com/search/results
   dbAssetUrl: https://theposterdb.com/api/assets/
 templates:
   collections:
@@ -23,16 +25,16 @@ templates:
       jsonFileName: library.json.j2
   reports:
     collection:
-      jsonFileName: collection.report.json.j2
-      htmlFileName: collection.report.html.j2
+      jsonFileName: report.collection.json.j2
+      htmlFileName: report.collection.html.j2
     metadata:
-      jsonFileName: metadata.report.json.j2
-      htmlFileName: metadata.report.html.j2
+      jsonFileName: report.metadata.json.j2
+      htmlFileName: report.metadata.html.j2
 output:
   path: "./data"
   pathFormat: "{{libraryTitle}}"
-  itemReportBaseName: itemreport
-  collectionReportBaseName: collectionreport
+  itemReportBaseName: "Items-Report"
+  collectionReportBaseName: "Collection-Report"
 generate:
   enableJson: False
   enableYaml: True

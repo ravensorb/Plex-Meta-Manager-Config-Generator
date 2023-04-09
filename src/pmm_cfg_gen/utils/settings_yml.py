@@ -27,7 +27,6 @@ class SettingsOutput:
         self.itemReportBaseName = itemReportBaseName
         self.collectionReportBaseName = collectionReportBaseName
 
-
 class SettingsPlex:
     serverUrl: str
     token: str
@@ -37,7 +36,6 @@ class SettingsPlex:
         self.serverUrl = serverUrl
         self.token = token
         self.libraries = libraries
-
 
 class SettingsTemplateFiles:
     yamlFileName: str | None
@@ -53,7 +51,6 @@ class SettingsTemplateFiles:
         self.yamlFileName = yamlFileName
         self.jsonFileName = jsonFileName
         self.htmlFileName = htmlFileName
-
 
 class SettingsTemplatePlexItemFileGroup:
     movies: SettingsTemplateFiles | None
@@ -120,15 +117,17 @@ class SettingsTemplates:
 
         return Path(self.templatePath).resolve()
 
-
 class SettingsThePosterDatabase:
+    enablePro: bool
+    searchUrlPro: str
     searchUrl: str
     dbAssetUrl: str
 
-    def __init__(self, searchUrl: str, dbAssetUrl: str) -> None:
+    def __init__(self, searchUrl: str, searchUrlPro: str, dbAssetUrl: str, enablePro: bool) -> None:
         self.searchUrl = searchUrl
+        self.searchUrlPro = searchUrlPro
         self.dbAssetUrl = dbAssetUrl
-
+        self.enablePro = enablePro
 
 class SettingsGenerate:
     enableJson: bool
@@ -225,9 +224,13 @@ class SettingsManager:
                 searchUrl=expandvars(
                     self._config["thePosterDatabase"]["searchUrl"].as_str()
                 ),
+                searchUrlPro=expandvars(
+                    self._config["thePosterDatabase"]["searchUrlPro"].as_str()
+                ),
                 dbAssetUrl=expandvars(
                     self._config["thePosterDatabase"]["dbAssetUrl"].as_str()
                 ),
+                enablePro=bool(self._config["thePosterDatabase"]["enablePro"].get(confuse.Optional(False)))
             ),
             templates=SettingsTemplates(
                 collections=SettingsTemplatePlexItemFileGroup(

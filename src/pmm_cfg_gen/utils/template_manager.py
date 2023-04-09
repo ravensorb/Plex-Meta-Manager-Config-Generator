@@ -7,11 +7,12 @@ import urllib.parse
 from pathlib import Path
 
 import jinja2
+import jinja2.exceptions
 import jsonpickle
 import requests
 
 from pmm_cfg_gen.utils.fileutils import writeFile
-from pmm_cfg_gen.utils.plex_utils import isPMMItem
+from pmm_cfg_gen.utils.plex_utils import isPMMItem, PlexItemHelper
 from pmm_cfg_gen.utils.settings_yml import globalSettingsMgr
 
 #######################################################################
@@ -28,40 +29,39 @@ def formatJson(data):
 
 def generateTpDbSearchUrl(item, baseUrl = None) -> str:
     if baseUrl is None:
-        baseUrl = globalSettingsMgr.settings.thePosterDatabase.searchUrl
+        baseUrl = globalSettingsMgr.settings.thePosterDatabase.searchUrlPro if globalSettingsMgr.settings.thePosterDatabase.enablePro else globalSettingsMgr.settings.thePosterDatabase.searchUrl
 
     urlParms = {}
 
-    if item.type == "collection":
-        if item.metadataType == "movie":
+    urlParms.update({"term": item.title})
+
+    if globalSettingsMgr.settings.thePosterDatabase.enablePro:
+        if item.type == "collection":
+            if item.subtype == "movie":
+                urlParms.update({"category": "Movies"})
+            elif item.subtype == "show":
+                urlParms.update({"category": "Shows"})
+        elif item.type == "movie":
             urlParms.update({"category": "Movies"})
-            urlParms.update({"term": "{}{}".format(item.title, " collection" if "collection" not in item.title else "")})
-        elif item.metadataType == "show":
+            urlParms.update({"year_filter": "equals"})
+            urlParms.update({"yone": item.year})
+        elif item.type == "show":
             urlParms.update({"category": "Shows"})
-            urlParms.update({"term": "{}{}".format(item.title, " collection" if "collection" not in item.title else "")})
-    elif item.type == "movie":
-        urlParms.update({"category": "Movies"})
-        urlParms.update({"term": item.title})
-        urlParms.update({"year_filter": "equals"})
-        urlParms.update({"yone": item.year})
-    elif item.type == "show":
-        urlParms.update({"category": "Shows"})
-        urlParms.update({"term": item.title})
-        urlParms.update({"year_filter": "equals"})
-        urlParms.update({"yone": item.year})
-    elif item.type == "season":
-        urlParms.update({"category": "Shows"})
-        urlParms.update({"term": "{} {}".format(item.title, item.parentTitle)})
+            urlParms.update({"year_filter": "equals"})
+            urlParms.update({"yone": item.year})
+        elif item.type == "season":
+            urlParms.update({"category": "Shows"})
+            urlParms.update({"term": "{} {}".format(item.parentTitle, item.title)})
 
-    if "guids" in item.__dict__:
-        ids = dict(o.id.split("://") for o in item.guids)
+        if "guids" in item.__dict__:
+            ids = dict(o.id.split("://") for o in item.guids)
 
-        if "tmdb" in ids.keys():
-            urlParms.update({"tmdb_id": ids["tmdb"]})
-        if "imdb" in ids.keys():
-            urlParms.update({"imdb_id": ids["imdb"]})
-        if "tvdb" in ids.keys():
-            urlParms.update({"tvdb_id": ids["tvdb"]})
+            if "tmdb" in ids.keys():
+                urlParms.update({"tmdb_id": ids["tmdb"]})
+            if "imdb" in ids.keys():
+                urlParms.update({"imdb_id": ids["imdb"]})
+            if "tvdb" in ids.keys():
+                urlParms.update({"tvdb_id": ids["tvdb"]})
 
     #logging.getLogger("pmm-cfg-gen").info(urlParms)
     
@@ -73,15 +73,10 @@ def generateTpDbSearchUrl(item, baseUrl = None) -> str:
     return str(req.url)
 
 def getItemGuidByName(item, guidName : str) -> str | None: 
-    try:
-        ids = dict(o.id.split("://") for o in item.guids)
+    plexItem = PlexItemHelper(item)
 
-        return ids[guidName] if guidName in ids.keys() else ""
-    except:
-        pass 
+    return plexItem.getGuidByName(guidName)
     
-    return "" 
-
 #######################################################################
 
 class TemplateManager:
@@ -145,7 +140,7 @@ class TemplateManager:
                 tpl = self.__tplEnv.get_template(str(templateName))
 
                 self.__cachedTemplates[templateName] = tpl
-            except jinja2.TemplateSyntaxError as exTpl:
+            except (jinja2.TemplateSyntaxError, jinja2.exceptions.UndefinedError) as exTpl:
                 self._logger.error("Failed to load template: '{}'. Exception: {}".format(templateName, str(exTpl)))
                 if self._logger.isEnabledFor(logging.DEBUG):
                     self._logger.exception("Template Syntax Error: '{}'".format(templateName))
