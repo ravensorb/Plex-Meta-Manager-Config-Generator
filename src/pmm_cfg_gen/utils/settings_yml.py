@@ -15,17 +15,32 @@ from expandvars import expandvars
 
 
 #######################################################################
+class SettingsOutputFileNames:
+    collections: str
+    metadata: str
+    collectionsReport: str
+    metadataReport : str
+
+    def __init__(self, collections: str, metadata: str, collectionsReport: str, metadataReport: str) -> None:
+        self.collections = collections
+        self.metadata = metadata
+        self.collectionsReport = collectionsReport
+        self.metadataReport = metadataReport
+
 class SettingsOutput:
     path: str
     pathFormat: str
-    itemReportBaseName : str
-    collectionReportBaseName : str
+    fileNameFormat = SettingsOutputFileNames
 
-    def __init__(self, path: str, pathFormat: str, itemReportBaseName : str, collectionReportBaseName : str) -> None:
+    def __init__(
+        self,
+        path: str,
+        pathFormat: str,
+        fileNameFormat: SettingsOutputFileNames
+    ) -> None:
         self.path = path
         self.pathFormat = pathFormat
-        self.itemReportBaseName = itemReportBaseName
-        self.collectionReportBaseName = collectionReportBaseName
+        self.fileNameFormat = fileNameFormat
 
 class SettingsPlex:
     serverUrl: str
@@ -36,6 +51,7 @@ class SettingsPlex:
         self.serverUrl = serverUrl
         self.token = token
         self.libraries = libraries
+
 
 class SettingsTemplateFiles:
     yamlFileName: str | None
@@ -51,6 +67,7 @@ class SettingsTemplateFiles:
         self.yamlFileName = yamlFileName
         self.jsonFileName = jsonFileName
         self.htmlFileName = htmlFileName
+
 
 class SettingsTemplatePlexItemFileGroup:
     movies: SettingsTemplateFiles | None
@@ -79,6 +96,7 @@ class SettingsTemplatePlexItemFileGroup:
             "Unknown item type or template not defined: {}".format(itemType)
         )
 
+
 class SettingsTemplateReportFileGroup:
     collection: SettingsTemplateFiles | None
     metadata: SettingsTemplateFiles | None
@@ -86,10 +104,11 @@ class SettingsTemplateReportFileGroup:
     def __init__(
         self,
         collection: SettingsTemplateFiles | None,
-        metadata: SettingsTemplateFiles | None
+        metadata: SettingsTemplateFiles | None,
     ) -> None:
         self.collection = collection
         self.metadata = metadata
+
 
 class SettingsTemplates:
     templatePath: str | None
@@ -117,17 +136,49 @@ class SettingsTemplates:
 
         return Path(self.templatePath).resolve()
 
+
 class SettingsThePosterDatabase:
     enablePro: bool
     searchUrlPro: str
     searchUrl: str
     dbAssetUrl: str
 
-    def __init__(self, searchUrl: str, searchUrlPro: str, dbAssetUrl: str, enablePro: bool) -> None:
+    def __init__(
+        self, searchUrl: str, searchUrlPro: str, dbAssetUrl: str, enablePro: bool
+    ) -> None:
         self.searchUrl = searchUrl
         self.searchUrlPro = searchUrlPro
         self.dbAssetUrl = dbAssetUrl
         self.enablePro = enablePro
+
+
+class SettingsTheMovieDatabase:
+    apiKey: str | None
+    language: str | None
+    region: str | None
+    limitCollectionResults: int | None
+
+    def __init__(
+        self,
+        apiKey: str | None,
+        language: str | None,
+        region: str | None,
+        limitCollectionResults: int | None,
+    ) -> None:
+        self.apiKey = apiKey
+        self.language = language
+        self.region = region
+        self.limitCollectionResults = limitCollectionResults
+
+
+class SettingsTheTvDatabase:
+    apiKey: str | None
+    pin: str | None
+
+    def __init__(self, apiKey: str | None, pin: str | None) -> None:
+        self.apiKey = apiKey
+        self.pin = pin
+
 
 class SettingsGenerate:
     enableJson: bool
@@ -151,6 +202,8 @@ class SettingsGenerate:
 class Settings:
     plex: SettingsPlex
     thePosterDatabase: SettingsThePosterDatabase
+    theMovieDatabase: SettingsTheMovieDatabase
+    theTvDatabase: SettingsTheTvDatabase
     templates: SettingsTemplates
     output: SettingsOutput
     generate: SettingsGenerate
@@ -159,12 +212,16 @@ class Settings:
         self,
         plex: SettingsPlex,
         thePosterDatabase: SettingsThePosterDatabase,
+        theMovieDatabase: SettingsTheMovieDatabase,
+        theTvDatabase: SettingsTheTvDatabase,
         templates: SettingsTemplates,
         output: SettingsOutput,
         generate: SettingsGenerate,
     ) -> None:
         self.plex = plex
         self.thePosterDatabase = thePosterDatabase
+        self.theMovieDatabase = theMovieDatabase
+        self.theTvDatabase = theTvDatabase
         self.templates = templates
         self.output = output
         self.generate = generate
@@ -230,7 +287,21 @@ class SettingsManager:
                 dbAssetUrl=expandvars(
                     self._config["thePosterDatabase"]["dbAssetUrl"].as_str()
                 ),
-                enablePro=bool(self._config["thePosterDatabase"]["enablePro"].get(confuse.Optional(False)))
+                enablePro=bool(
+                    self._config["thePosterDatabase"]["enablePro"].get(
+                        confuse.Optional(False)
+                    )
+                ),
+            ),
+            theMovieDatabase=SettingsTheMovieDatabase(
+                apiKey=self._config["theMovieDatabase"]["apiKey"].get(confuse.Optional(None)),  # type: ignore
+                language=self._config["theMovieDatabase"]["language"].get(confuse.Optional(None)),  # type: ignore
+                region=self._config["theMovieDatabase"]["region"].get(confuse.Optional(None)),  # type: ignore
+                limitCollectionResults=self._config["theMovieDatabase"]["limitCollectionResults"].get(confuse.Optional(None)),  # type: ignore
+            ),
+            theTvDatabase=SettingsTheTvDatabase(
+                apiKey=self._config["theTvDatabase"]["apiKey"].get(confuse.Optional(None)),  # type: ignore
+                pin=self._config["theTvDatabase"]["pin"].get(confuse.Optional(None)),  # type: ignore
             ),
             templates=SettingsTemplates(
                 collections=SettingsTemplatePlexItemFileGroup(
@@ -337,15 +408,27 @@ class SettingsManager:
             output=SettingsOutput(
                 path=str(self._config["output"]["path"].as_str()),
                 pathFormat=str(self._config["output"]["pathFormat"].as_str()),
-                collectionReportBaseName=str(
-                    self._config["output"]["collectionReportBaseName"].get(
-                        confuse.Optional("collectionreport")
-                    )
-                ),
-                itemReportBaseName=str(
-                    self._config["output"]["itemReportBaseName"].get(
-                        confuse.Optional("itemreport")
-                    )
+                fileNameFormat=SettingsOutputFileNames(
+                    collections=str(
+                        self._config["output"]["fileNameFormat"]["collections"].get(
+                            confuse.Optional("{{collection.title}} ({{collection.year}})")
+                        )
+                    ),
+                    metadata=str(
+                        self._config["output"]["fileNameFormat"]["metadata"].get(
+                            confuse.Optional("{{item.title}} ({{item.year}}) [{{item.editionTitle}}]")
+                        )
+                    ),
+                    collectionsReport=str(
+                        self._config["output"]["fileNameFormat"]["collectionsReport"].get(
+                            confuse.Optional("{{library.title}} - Collections")
+                        )
+                    ),
+                    metadataReport=str(
+                        self._config["output"]["fileNameFormat"]["metedataReport"].get(
+                            confuse.Optional("{{library.title}} - Items")
+                        )
+                    ),
                 )
             ),
             generate=SettingsGenerate(

@@ -1,5 +1,5 @@
 [
 {% for item in items %}
-    {{ item.metadata | formatJson}}{% if not loop.last %},{% endif %}
+    {{ item.metadata | formatJson(4) }}{% if not loop.last %},{% endif %}
 {% endfor %}
 ]

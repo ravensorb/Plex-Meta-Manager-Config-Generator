@@ -6,6 +6,8 @@ thePosterDatabase:
   searchUrlPro: https://theposterdb.com/search/advanced/results
   searchUrl: https://theposterdb.com/search/results
   dbAssetUrl: https://theposterdb.com/api/assets/
+theMovieDatabase:
+  limitCollectionResults: 4
 templates:
   collections:
     movies:
@@ -32,9 +34,12 @@ templates:
       htmlFileName: report.metadata.html.j2
 output:
   path: "./data"
-  pathFormat: "{{libraryTitle}}"
-  itemReportBaseName: "Items-Report"
-  collectionReportBaseName: "Collection-Report"
+  pathFormat: "{{library.title}}"
+  fileNameFormat:
+    collections: "{{collection.title}}"
+    metadata: "{{item.title}} ({{item.year}}) [{{item.editionTitle}}]"
+    collectionsReport: "{{library.title}} - Report"
+    metedataReport: "{{library.title}} - Items"
 generate:
   enableJson: False
   enableYaml: True

@@ -12,15 +12,16 @@ import requests
 import urllib3
 import urllib3.exceptions
 from plexapi.library import LibrarySection
+from plexapi.collection import Collection
+from plexapi.video import Video
 from plexapi.server import PlexServer
 
-from pmm_cfg_gen.utils.fileutils import formatLibraryItemPath
-from pmm_cfg_gen.utils.plex_stats import (
-    PlexStats
-)
-from pmm_cfg_gen.utils.plex_utils import _cleanTitle, isPMMItem, _formatItemTitle, PlexItemHelper
+from pmm_cfg_gen.utils.file_utils import formatLibraryItemPath
+from pmm_cfg_gen.utils.plex_stats import PlexStats
+from pmm_cfg_gen.utils.plex_utils import PlexItemHelper
 from pmm_cfg_gen.utils.settings_yml import globalSettingsMgr
-from pmm_cfg_gen.utils.template_manager import TemplateManager, generateTpDbSearchUrl
+from pmm_cfg_gen.utils.template_manager import TemplateManager
+from pmm_cfg_gen.utils.template_filters import generateTpDbSearchUrl
 
 ###################################################################################################
 
@@ -33,7 +34,7 @@ class PlexLibraryProcessor:
     _logger: logging.Logger
 
     __collectionProcessedCache: dict[str, list]
-    _itemProcessedCache: dict[str,list]
+    _itemProcessedCache: dict[str, list]
 
     __session: requests.Session
 
@@ -46,7 +47,6 @@ class PlexLibraryProcessor:
     plexLibraryName: str
 
     pathLibrary: Path
-
 
     ###############################################################################################
     def __init__(self) -> None:
@@ -69,12 +69,15 @@ class PlexLibraryProcessor:
 
         self._connectToServer()
 
-        
         if globalSettingsMgr.settings.plex.libraries is None:
-            self._logger.debug(
-                "Loading Library list from plex."
+            self._logger.debug("Loading Library list from plex.")
+            globalSettingsMgr.settings.plex.libraries = sorted(
+                [
+                    str(x.title)
+                    for x in self.plexServer.library.sections()
+                    if x.type == "movie" or x.type == "show"
+                ]
             )
-            globalSettingsMgr.settings.plex.libraries = sorted([str(x.title) for x in self.plexServer.library.sections() if x.type == "movie" or x.type == "show"])
 
         self._logger.info(
             "Libraries to process: {}".format(
@@ -112,7 +115,7 @@ class PlexLibraryProcessor:
         self.plexLibraryName = libraryName
 
         self.pathLibrary = formatLibraryItemPath(
-            globalSettingsMgr.settings.output, self.plexLibrary
+            globalSettingsMgr.settings.output, library=self.plexLibrary
         )
         self.pathLibrary.mkdir(parents=True, exist_ok=True)
 
@@ -140,8 +143,8 @@ class PlexLibraryProcessor:
         self._logger.info("Started Processing Library: '{}'".format(libraryName))
 
         self.__stats.initLibrary(libraryName)
-        self.__collectionProcessedCache.update({ libraryName : list() })
-        self._itemProcessedCache.update({ libraryName : list() })
+        self.__collectionProcessedCache.update({libraryName: list()})
+        self._itemProcessedCache.update({libraryName: list()})
 
         self.__stats.timerLibraries[libraryName].start()
 
@@ -170,11 +173,9 @@ class PlexLibraryProcessor:
 
         for item in items:
             try:
-                self._processMetadata(item.title, [item])
+                self._processMetadata(None, [item])
             except:
-                self._logger.exception(
-                    "Error Processing Item: {}".format(item.title)
-                )
+                self._logger.exception("Error Processing Item: {}".format(item.title))
 
         self.__stats.timerLibraries[libraryName].stop()
 
@@ -185,20 +186,25 @@ class PlexLibraryProcessor:
     def _processCollection(self, itemTitle: str, item):
         self.__stats.countsLibraries[self.plexLibraryName].collections.processed += 1
 
-        title = _cleanTitle(itemTitle)
-
-        if isPMMItem(item) or item.childCount == 0:
+        if PlexItemHelper.isPMMItem(item) or item.childCount == 0:
             self._logger.info(
                 "[{}/{}] Skipping Dynamic/Empty Collecton: {}".format(
-                    self.__stats.countsLibraries[self.plexLibraryName].collections.processed,
-                    self.__stats.countsLibraries[self.plexLibraryName].collections.total,
-                    item.title)
+                    self.__stats.countsLibraries[
+                        self.plexLibraryName
+                    ].collections.processed,
+                    self.__stats.countsLibraries[
+                        self.plexLibraryName
+                    ].collections.total,
+                    item.title,
+                )
             )
-            return 
-        
+            return
+
         self._logger.info(
             "[{}/{}] Processing Collection: {}".format(
-                self.__stats.countsLibraries[self.plexLibraryName].collections.processed,
+                self.__stats.countsLibraries[
+                    self.plexLibraryName
+                ].collections.processed,
                 self.__stats.countsLibraries[self.plexLibraryName].collections.total,
                 itemTitle,
             )
@@ -213,14 +219,16 @@ class PlexLibraryProcessor:
             "tplFiles: {}".format(jsonpickle.dumps(tplFiles, unpicklable=False))
         )
 
-        fileName = Path(self.pathLibrary, "collections", "{}.yml".format(title))
+        fileNameBase = PlexItemHelper.formatString(globalSettingsMgr.settings.output.fileNameFormat.collections, library=self.plexLibrary, collection=item, item=None)
+        
+        fileName = Path(self.pathLibrary, "collections", "{}.yml".format(fileNameBase))
         if (
             not os.path.exists(fileName)
             and tplFiles.yamlFileName is not None
             and globalSettingsMgr.settings.generate.enableYaml
         ):
             self._logger.debug("  Generating Collection file")
-            
+
             self.templateManager.renderAndSave(
                 tplFiles.yamlFileName, fileName, tplArgs={"item": item}
             )
@@ -235,7 +243,8 @@ class PlexLibraryProcessor:
         else:
             self._logger.warn("  Collection File Exists")
 
-        fileNameJson = Path(self.pathLibrary, "collections/json", "{}.json".format(title))
+        fileNameJson = Path(self.pathLibrary, "collections/json", "{}.json".format(fileNameBase))
+        
         if (
             tplFiles.jsonFileName is not None
             and globalSettingsMgr.settings.generate.enableJson
@@ -254,50 +263,63 @@ class PlexLibraryProcessor:
             )
             self.__stats.countsLibraries[self.plexLibraryName].items.processed = 0
 
-            self._processMetadata(title, childItems)
+            self._processMetadata(collection=item, items=childItems)
 
-    def _processMetadata(self, itemTitle: str, items):
-        title = _cleanTitle(itemTitle)
+    def _processMetadata(self, collection : Collection | None, items : list[Video]):
 
-        fileName = Path(self.pathLibrary, "metadata", "{}.yml".format(title))
-        fileNameJson = Path(self.pathLibrary, "metadata/json", "{}.json".format(title))
+        if len(items) == 1 and isinstance(items[0], Video):
+            fileNameBase = PlexItemHelper.formatString(globalSettingsMgr.settings.output.fileNameFormat.metadata, library=self.plexLibrary, collection=collection, item=items[0])
+        else:
+            fileNameBase = PlexItemHelper.formatString(globalSettingsMgr.settings.output.fileNameFormat.collections, library=self.plexLibrary, collection=collection, item=items[0])
+
+        self._logger.debug("FileName: {}".format(fileNameBase))
+
+        fileName = Path(self.pathLibrary, "metadata", "{}.yml".format(fileNameBase))
+        fileNameJson = Path(self.pathLibrary, "metadata/json", "{}.json".format(fileNameBase))
 
         tplFiles = globalSettingsMgr.settings.templates.metadata.getByItemType(
             self.plexLibrary.type
         )
-        
+
         itemsWithExtras = []
         for item in items:
             self.__stats.countsLibraries[self.plexLibraryName].items.processed += 1
 
-            if isPMMItem(item):
+            if PlexItemHelper.isPMMItem(item):
                 self._logger.info(
                     "[{}/{}] Skipping '{}': {}. Dynamic item".format(
-                        self.__stats.countsLibraries[self.plexLibraryName].items.processed,
-                        self.__stats.countsLibraries[self.plexLibraryName].items.total,
-                        item.type, _formatItemTitle(item)
-                    )
-                )
-            elif self._isItemProcessed(item):                                 
-                self._logger.info(
-                    "[{}/{}] Skipping {}: {}. Already Processed".format(
-                        self.__stats.countsLibraries[self.plexLibraryName].items.processed,
+                        self.__stats.countsLibraries[
+                            self.plexLibraryName
+                        ].items.processed,
                         self.__stats.countsLibraries[self.plexLibraryName].items.total,
                         item.type,
-                        _formatItemTitle(item)
+                        PlexItemHelper.formatItemTitle(item),
+                    )
+                )
+            elif self._isItemProcessed(item):
+                self._logger.info(
+                    "[{}/{}] Skipping {}: {}. Already Processed".format(
+                        self.__stats.countsLibraries[
+                            self.plexLibraryName
+                        ].items.processed,
+                        self.__stats.countsLibraries[self.plexLibraryName].items.total,
+                        item.type,
+                        PlexItemHelper.formatItemTitle(item),
                     )
                 )
             else:
                 self._logger.info(
                     "[{}/{}] Processing {}: {}".format(
-                        self.__stats.countsLibraries[self.plexLibraryName].items.processed,
+                        self.__stats.countsLibraries[
+                            self.plexLibraryName
+                        ].items.processed,
                         self.__stats.countsLibraries[self.plexLibraryName].items.total,
                         item.type,
-                        _formatItemTitle(item)
+                        PlexItemHelper.formatItemTitle(item),
                     )
                 )
 
-                self._addItemToProcessedCache(item)
+                self._addItemToProcessedCache(collection, item)
 
                 seasons = []
                 if "childCount" in item.__dict__:
@@ -308,7 +330,8 @@ class PlexLibraryProcessor:
 
         # Do we have anything we need to process
         if len(itemsWithExtras) > 0:
-            if (not os.path.exists(fileName)
+            if (
+                not os.path.exists(fileName)
                 and tplFiles.yamlFileName is not None
                 and globalSettingsMgr.settings.generate.enableYaml
             ):
@@ -328,7 +351,9 @@ class PlexLibraryProcessor:
             ):
                 self._logger.debug("  Generating json file")
                 self.templateManager.renderAndSave(
-                    tplFiles.jsonFileName, fileNameJson, tplArgs={"items": itemsWithExtras}
+                    tplFiles.jsonFileName,
+                    fileNameJson,
+                    tplArgs={"items": itemsWithExtras},
                 )
 
     def _isCollectionProcessed(self, item) -> bool:
@@ -336,24 +361,12 @@ class PlexLibraryProcessor:
             (
                 x
                 for x in self.__collectionProcessedCache[self.plexLibraryName]
-                if x["title"] ==  item.title
+                if x["title"] == item.title
             ),
             None,
         )
 
-        return it is not None 
-
-    def _isItemProcessed(self, item) -> bool:
-        it = next(
-            (
-                x
-                for x in self._itemProcessedCache[self.plexLibraryName]
-                if x["title"] ==  _formatItemTitle(item)
-            ),
-            None,
-        )
-
-        return it is not None 
+        return it is not None
 
     def _addCollectionToProcessedCache(self, item):
         if self.plexLibraryName not in self.__collectionProcessedCache.keys():
@@ -361,14 +374,26 @@ class PlexLibraryProcessor:
 
         if not self._isCollectionProcessed(item):
             tpdbEntry = {
-                "title":  item.title,
+                "title": item.title,
                 "searchUrl": generateTpDbSearchUrl(item),
-                "metadata": item
+                "metadata": item,
             }
 
             self.__collectionProcessedCache[self.plexLibraryName].append(tpdbEntry)
-        
-    def _addItemToProcessedCache(self, item):
+
+    def _isItemProcessed(self, item) -> bool:
+        it = next(
+            (
+                x
+                for x in self._itemProcessedCache[self.plexLibraryName]
+                if x["title"] == PlexItemHelper.formatItemTitle(item)
+            ),
+            None,
+        )
+
+        return it is not None
+
+    def _addItemToProcessedCache(self, collection, item):
         pi = PlexItemHelper(item)
 
         if self.plexLibraryName not in self._itemProcessedCache.keys():
@@ -376,10 +401,11 @@ class PlexLibraryProcessor:
 
         if not self._isItemProcessed(item):
             tpdbEntry = {
-                "title":  _formatItemTitle(item),
+                "collection": collection.title if collection is not None else "",
+                "title": PlexItemHelper.formatItemTitle(item),
                 "searchUrl": generateTpDbSearchUrl(item),
                 "ids": pi.guids,
-                "metadata": item
+                "metadata": item,
             }
 
             self._itemProcessedCache[self.plexLibraryName].append(tpdbEntry)
@@ -398,43 +424,76 @@ class PlexLibraryProcessor:
 
         try:
             self.__collectionProcessedCache[self.plexLibraryName] = sorted(
-                self.__collectionProcessedCache[self.plexLibraryName], key=lambda x: x["title"]
+                self.__collectionProcessedCache[self.plexLibraryName],
+                key=lambda x: x["title"],
             )
 
-            fileNameJson = Path(self.pathLibrary, "{}.json".format(globalSettingsMgr.settings.output.collectionReportBaseName) )
+            fileNameBase = PlexItemHelper.formatString(globalSettingsMgr.settings.output.fileNameFormat.collectionsReport, library=self.plexLibrary, collection=None, item=None)
+            
+            fileNameJson = Path(self.pathLibrary, "{}.json".format(fileNameBase))
+            
             if tplFiles.jsonFileName is not None and len(tplFiles.jsonFileName) > 0:
                 self.templateManager.renderAndSave(
                     tplFiles.jsonFileName,
                     fileNameJson,
                     tplArgs={
                         "items": self.__collectionProcessedCache[self.plexLibraryName],
-                        "stats": json.loads(str(jsonpickle.dumps(self.__stats.countsLibraries[self.plexLibraryName], unpicklable=False))),
-                        "processingTime": self.__stats.timerLibraries[self.plexLibraryName].to_dict()
-                    }
+                        "stats": json.loads(
+                            str(
+                                jsonpickle.dumps(
+                                    self.__stats.countsLibraries[self.plexLibraryName],
+                                    unpicklable=False,
+                                )
+                            )
+                        ),
+                        "processingTime": self.__stats.timerLibraries[
+                            self.plexLibraryName
+                        ].to_dict(),
+                    },
                 )
 
-            fileNameHtml = Path(self.pathLibrary, "{}.html".format(globalSettingsMgr.settings.output.collectionReportBaseName) )
+            fileNameHtml = Path(self.pathLibrary, "{}.html".format(fileNameBase))
+            
             if tplFiles.htmlFileName is not None and len(tplFiles.htmlFileName) > 0:
                 self.templateManager.renderAndSave(
                     tplFiles.htmlFileName,
                     fileNameHtml,
                     tplArgs={
                         "items": self.__collectionProcessedCache[self.plexLibraryName],
-                        "stats": json.loads(str(jsonpickle.dumps(self.__stats.countsLibraries[self.plexLibraryName], unpicklable=False))),
-                        "processingTime": self.__stats.timerLibraries[self.plexLibraryName].to_dict()
-                    }
+                        "stats": json.loads(
+                            str(
+                                jsonpickle.dumps(
+                                    self.__stats.countsLibraries[self.plexLibraryName],
+                                    unpicklable=False,
+                                )
+                            )
+                        ),
+                        "processingTime": self.__stats.timerLibraries[
+                            self.plexLibraryName
+                        ].to_dict(),
+                    },
                 )
 
-            fileNameYaml = Path(self.pathLibrary, "{}.yaml".format(globalSettingsMgr.settings.output.collectionReportBaseName) )
+            fileNameYaml = Path(self.pathLibrary, "{}.yaml".format(fileNameBase))
+            
             if tplFiles.yamlFileName is not None and len(tplFiles.yamlFileName) > 0:
                 self.templateManager.renderAndSave(
                     tplFiles.yamlFileName,
                     fileNameYaml,
                     tplArgs={
                         "items": self.__collectionProcessedCache[self.plexLibraryName],
-                        "stats": json.loads(str(jsonpickle.dumps(self.__stats.countsLibraries[self.plexLibraryName], unpicklable=False))),
-                        "processingTime": self.__stats.timerLibraries[self.plexLibraryName].to_dict()
-                    }
+                        "stats": json.loads(
+                            str(
+                                jsonpickle.dumps(
+                                    self.__stats.countsLibraries[self.plexLibraryName],
+                                    unpicklable=False,
+                                )
+                            )
+                        ),
+                        "processingTime": self.__stats.timerLibraries[
+                            self.plexLibraryName
+                        ].to_dict(),
+                    },
                 )
         except:
             self._logger.exception("Failed generating collection report")
@@ -453,43 +512,75 @@ class PlexLibraryProcessor:
 
         try:
             self._itemProcessedCache[self.plexLibraryName] = sorted(
-                self._itemProcessedCache[self.plexLibraryName], key=lambda x: x["title"]
+                self._itemProcessedCache[self.plexLibraryName], key=lambda x: "{}:{}".format(x["collection"], x["title"])
             )
 
-            fileNameJson = Path(self.pathLibrary, "{}.json".format(globalSettingsMgr.settings.output.itemReportBaseName) )
+            fileNameBase = PlexItemHelper.formatString(globalSettingsMgr.settings.output.fileNameFormat.metadataReport, library=self.plexLibrary, collection=None, item=None)
+
+            fileNameJson = Path(self.pathLibrary, "{}.json".format(fileNameBase))
+
             if tplFiles.jsonFileName is not None and len(tplFiles.jsonFileName) > 0:
                 self.templateManager.renderAndSave(
                     tplFiles.jsonFileName,
                     fileNameJson,
                     tplArgs={
                         "items": self._itemProcessedCache[self.plexLibraryName],
-                        "stats": json.loads(str(jsonpickle.dumps(self.__stats.countsLibraries[self.plexLibraryName], unpicklable=False))),
-                        "processingTime": self.__stats.timerLibraries[self.plexLibraryName].to_dict()
-                    }
+                        "stats": json.loads(
+                            str(
+                                jsonpickle.dumps(
+                                    self.__stats.countsLibraries[self.plexLibraryName],
+                                    unpicklable=False,
+                                )
+                            )
+                        ),
+                        "processingTime": self.__stats.timerLibraries[
+                            self.plexLibraryName
+                        ].to_dict(),
+                    },
                 )
 
-            fileNameHtml = Path(self.pathLibrary, "{}.html".format(globalSettingsMgr.settings.output.itemReportBaseName) )
+            fileNameHtml = Path(self.pathLibrary, "{}.html".format(fileNameBase) )
+            
             if tplFiles.htmlFileName is not None and len(tplFiles.htmlFileName) > 0:
                 self.templateManager.renderAndSave(
                     tplFiles.htmlFileName,
                     fileNameHtml,
                     tplArgs={
                         "items": self._itemProcessedCache[self.plexLibraryName],
-                        "stats": json.loads(str(jsonpickle.dumps(self.__stats.countsLibraries[self.plexLibraryName], unpicklable=False))),
-                        "processingTime": self.__stats.timerLibraries[self.plexLibraryName].to_dict()
-                    }
+                        "stats": json.loads(
+                            str(
+                                jsonpickle.dumps(
+                                    self.__stats.countsLibraries[self.plexLibraryName],
+                                    unpicklable=False,
+                                )
+                            )
+                        ),
+                        "processingTime": self.__stats.timerLibraries[
+                            self.plexLibraryName
+                        ].to_dict(),
+                    },
                 )
 
-            fileNameYaml = Path(self.pathLibrary, "{}.yaml".format(globalSettingsMgr.settings.output.itemReportBaseName) )
+            fileNameYaml = Path(self.pathLibrary, "{}.yaml".format(fileNameBase))
+            
             if tplFiles.yamlFileName is not None and len(tplFiles.yamlFileName) > 0:
                 self.templateManager.renderAndSave(
                     tplFiles.yamlFileName,
                     fileNameYaml,
                     tplArgs={
                         "items": self._itemProcessedCache[self.plexLibraryName],
-                        "stats": json.loads(str(jsonpickle.dumps(self.__stats.countsLibraries[self.plexLibraryName], unpicklable=False))),
-                        "processingTime": self.__stats.timerLibraries[self.plexLibraryName].to_dict()
-                    }
+                        "stats": json.loads(
+                            str(
+                                jsonpickle.dumps(
+                                    self.__stats.countsLibraries[self.plexLibraryName],
+                                    unpicklable=False,
+                                )
+                            )
+                        ),
+                        "processingTime": self.__stats.timerLibraries[
+                            self.plexLibraryName
+                        ].to_dict(),
+                    },
                 )
         except:
             self._logger.exception("Failed generating item report")
@@ -508,8 +599,8 @@ class PlexLibraryProcessor:
 
         self._logger.info(
             "  Total Processing Time: {}".format(
-                    self.__stats.timerProgram.elapsed_time_ts.to_str() 
-                )            
+                self.__stats.timerProgram.elapsed_time_ts.to_str()
+            )
         )
         self._logger.info(
             "  Collections Processed: {}".format(
@@ -528,8 +619,7 @@ class PlexLibraryProcessor:
 
             self._logger.info(
                 "  Processing Time: '{}'. Total Time: {}".format(
-                    libraryName, 
-                    libraryTimer.elapsed_time_ts.to_str()
+                    libraryName, libraryTimer.elapsed_time_ts.to_str()
                 )
             )
 

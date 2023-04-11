@@ -14,7 +14,9 @@ globalArgParser.add_argument(
 globalArgParser.add_argument(
     "--plex.lbraries", nargs="*", help="Comma delimited list of libraries to process"
 )
-globalArgParser.add_argument("--output.path", help="Root path to store generated files (default: ./data)")
+globalArgParser.add_argument(
+    "--output.path", help="Root path to store generated files (default: ./data)"
+)
 globalArgParser.add_argument(
     "--generate.enableJson",
     action="store_true",

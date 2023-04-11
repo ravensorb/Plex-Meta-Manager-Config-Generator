@@ -7,9 +7,9 @@ templates:
         year: <<year>>
         url_poster: https://theposterdb.com/api/assets/<<poster_id>>
 #}
-metadata:               #Posters found here: https://theposterdb.com/user/musikmann2000
+metadata:
 {% for item in items %}
-    "{{ item.metadata.title}} ({{ item.metadata.year }}){% if item.metadata.editionTitle and item.metadata.editionTitle | length > 0 %}[{{ item.metadata.editionTitle }}]{% endif %}":
+    "{{ item.metadata | formatItemTitle }}":
         year: {{ item.metadata.year }}
         title: "{{ item.metadata.title }}"
         {%- if item.metadata.editionTitle and item.metadata.editionTitle | length > 0 %}edition_filter: {{ item.metadata.editionTitle }}{% endif %}
@@ -19,5 +19,5 @@ metadata:               #Posters found here: https://theposterdb.com/user/musikm
         # tmdb: {% if item.metadata | getItemGuidByName("tmdb") | default("") | length > 0 %}https://www.themoviedb.org/{% if item.metadata.type == "movie" %}movie{% elif item.metadata.type == "show" %}tv{% else %}{% endif %}/{{ item.metadata | getItemGuidByName("tmdb") }}{% endif %}
         # tvdb: {% if item.metadata | getItemGuidByName("tvdb") | default("") | length > 0 %}https://thetvdb.com/search?menu%5Btype%5D={% if item.metadata.type == "movie"%}movie{% elif item.metadata.type == "show" %}series{% else %}{% endif %}&menu%5Byear%5D={{ item.metadata.year }}&query={{ item.metadata | getItemGuidByName("tvdb") }}{% endif %}
         # imdb: {% if item.metadata | getItemGuidByName("imdb") | default("") | length > 0 %}https://www.imdb.com/title/{{ item.metadata | getItemGuidByName("imdb") }}{% endif %}
-        # trakt: https://trakt.tv/search/{% if item.metadata.type == 'movie'%}movies{% elif item.metadata.type == 'show' %}shows{% else %}{% endif %}?query={{ item.title | urlencode }}
+        # trakt: https://trakt.tv/search/{% if item.metadata.type == 'movie'%}movies{% elif item.metadata.type == 'show' %}shows{% else %}{% endif %}?query={{ item.metadata.title | urlencode }}
     {% endfor %}

@@ -7,10 +7,11 @@ from pathlib import Path
 
 import ruamel.yaml
 
-from pmm_cfg_gen.utils.fileutils import formatLibraryItemPath, writeFile
-from pmm_cfg_gen.utils.plex_utils import _cleanTitle, isPMMItem
+from pmm_cfg_gen.utils.file_utils import formatLibraryItemPath, writeFile
+from pmm_cfg_gen.utils.plex_utils import PlexCollectionHelper, PlexItemHelper
 from pmm_cfg_gen.utils.settings_yml import globalSettingsMgr
-from pmm_cfg_gen.utils.template_manager import TemplateManager, generateTpDbSearchUrl
+from pmm_cfg_gen.utils.template_manager import TemplateManager
+from pmm_cfg_gen.utils.template_filters import generateTpDbSearchUrl
 
 
 ###################################################################################################
@@ -31,7 +32,7 @@ class PlexMetaManager:
             "Merging Updates into Collection Item: '{}'".format(itemTitle)
         )
 
-        title = _cleanTitle(itemTitle)
+        title = PlexItemHelper.cleanTitle(itemTitle)
 
         fileName = Path(self.pathLibrary, "collections", "{}.yml".format(title))
 
@@ -49,7 +50,9 @@ class PlexMetaManager:
                 for it in data[0]:
                     self._logger.info(ruamel.yaml.dump(it))
                     data["collections"][it].yaml_set_comment_before_after_key(
-                        "template", after=format(generateTpDbSearchUrl(item)), after_indent=2
+                        "template",
+                        after=format(generateTpDbSearchUrl(item)),
+                        after_indent=2,
                     )
 
             with open(fileName, "w") as fp:
@@ -57,7 +60,7 @@ class PlexMetaManager:
         pass
 
     def mergeItem(self, itemTitle: str, item):
-        title = _cleanTitle(itemTitle)
+        title = PlexItemHelper.cleanTitle(itemTitle)
 
         fileName = Path(self.pathLibrary, "metadata", "{}.yml".format(title))
 

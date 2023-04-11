@@ -7,6 +7,7 @@ from pmm_cfg_gen.utils.timer import timer
 
 ###################################################################################################
 
+
 class PlexStatsTotals:
     total: int
     processed: int
@@ -18,6 +19,7 @@ class PlexStatsTotals:
     def _addStats(self, stats):
         self.total += stats.total
         self.processed += stats.processed
+
 
 class PlexStatsLibraryTotals:
     totals: PlexStatsTotals
@@ -33,6 +35,7 @@ class PlexStatsLibraryTotals:
     def calcTotals(self):
         self.totals.total = self.collections.total + self.items.total
         self.totals.processed = self.collections.processed + self.items.processed
+
 
 class PlexStats:
     timerProgram: timer

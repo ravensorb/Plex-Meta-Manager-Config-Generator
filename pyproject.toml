@@ -17,7 +17,6 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.10"
-jsonpickle = "*"
 plexapi = "*"
 jinja2 = "*"
 ruamel-yaml = "^0.17.21"
@@ -27,6 +26,9 @@ confuse = "^2.0.1"
 importlib-resources = "^5.12.0"
 coloredlogs = "^15.0.1"
 readchar = "^4.0.5"
+jsonpickle = "^3.0.1"
+json-fix = "^0.5.2"
+themoviedb = "^0.3.3"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.2.1"

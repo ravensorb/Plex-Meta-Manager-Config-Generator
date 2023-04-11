@@ -3,7 +3,6 @@
 # timer.py
 
 import time
-import datetime
 from contextlib import ContextDecorator
 from dataclasses import dataclass, field
 from typing import Any, Callable, ClassVar, Dict, Optional
@@ -11,8 +10,10 @@ from pmm_cfg_gen.utils.time_span import timespan
 
 #######################################################################
 
+
 class timer_exception(Exception):
     """A custom exception used to report errors in use of Timer class"""
+
 
 @dataclass
 class timer(ContextDecorator):
@@ -64,7 +65,7 @@ class timer(ContextDecorator):
     @property
     def elapsed_time_ts(self) -> timespan:
         return self._elapsed_time
-    
+
     def __enter__(self) -> "timer":
         """Start a new timer as a context manager"""
         self.start()
@@ -75,4 +76,8 @@ class timer(ContextDecorator):
         self.stop()
 
     def to_dict(self):
-        return { "start": self._start_time, "end": self._end_time, "elapsed": self._elapsed_time.to_dict() }
+        return {
+            "start": self._start_time,
+            "end": self._end_time,
+            "elapsed": self._elapsed_time.to_dict(),
+        }
