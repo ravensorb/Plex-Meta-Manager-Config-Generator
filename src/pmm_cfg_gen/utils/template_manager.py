@@ -9,7 +9,7 @@ import jinja2.exceptions
 import jsonpickle
 
 from pmm_cfg_gen.utils.file_utils import writeFile
-from pmm_cfg_gen.utils.plex_utils import PlexItemHelper
+from pmm_cfg_gen.utils.plex_utils import PlexItemHelper, PlexVideoHelper, PlexCollectionHelper
 import pmm_cfg_gen.utils.template_filters as template_filters
 from pmm_cfg_gen.utils.settings_yml import globalSettingsMgr
 
@@ -114,4 +114,4 @@ class TemplateManager:
         # self.__tplEnv.filters["getTvDbListId"] = template_filters.getTvDbListId
         self.__tplEnv.filters["quote"] = template_filters.quote
         self.__tplEnv.filters["add_prepostfix"] = template_filters.add_prepostfix
-        self.__tplEnv.filters["formatItemTitle"] = template_filters.formatItemTitle
+        self.__tplEnv.filters["formatItemTitle"] = PlexItemHelper.formatItemTitle

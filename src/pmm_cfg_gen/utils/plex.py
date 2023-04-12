@@ -18,7 +18,7 @@ from plexapi.server import PlexServer
 
 from pmm_cfg_gen.utils.file_utils import formatLibraryItemPath
 from pmm_cfg_gen.utils.plex_stats import PlexStats
-from pmm_cfg_gen.utils.plex_utils import PlexItemHelper
+from pmm_cfg_gen.utils.plex_utils import PlexItemHelper, PlexVideoHelper, PlexCollectionHelper
 from pmm_cfg_gen.utils.settings_yml import globalSettingsMgr
 from pmm_cfg_gen.utils.template_manager import TemplateManager
 from pmm_cfg_gen.utils.template_filters import generateTpDbSearchUrl
@@ -267,10 +267,14 @@ class PlexLibraryProcessor:
 
     def _processMetadata(self, collection : Collection | None, items : list[Video]):
 
-        if len(items) == 1 and isinstance(items[0], Video):
+        if collection is not None:
+            fileNameBase = PlexItemHelper.formatString(globalSettingsMgr.settings.output.fileNameFormat.collections, library=self.plexLibrary, collection=collection, item=None)
+        elif len(items) == 1 and isinstance(items[0], Video):
             fileNameBase = PlexItemHelper.formatString(globalSettingsMgr.settings.output.fileNameFormat.metadata, library=self.plexLibrary, collection=collection, item=items[0])
         else:
-            fileNameBase = PlexItemHelper.formatString(globalSettingsMgr.settings.output.fileNameFormat.collections, library=self.plexLibrary, collection=collection, item=items[0])
+            self._logger.error("Invalid item attempted to be processed: {}".format(items))
+
+            return
 
         self._logger.debug("FileName: {}".format(fileNameBase))
 
@@ -281,7 +285,8 @@ class PlexLibraryProcessor:
             self.plexLibrary.type
         )
 
-        itemsWithExtras = []
+        itemsWithExtras: list[dict] = []
+        
         for item in items:
             self.__stats.countsLibraries[self.plexLibraryName].items.processed += 1
 
@@ -330,6 +335,8 @@ class PlexLibraryProcessor:
 
         # Do we have anything we need to process
         if len(itemsWithExtras) > 0:
+            sorted(itemsWithExtras, key=lambda x: x["metadata"].year)
+            
             if (
                 not os.path.exists(fileName)
                 and tplFiles.yamlFileName is not None
@@ -394,7 +401,7 @@ class PlexLibraryProcessor:
         return it is not None
 
     def _addItemToProcessedCache(self, collection, item):
-        pi = PlexItemHelper(item)
+        pi = PlexVideoHelper(item)
 
         if self.plexLibraryName not in self._itemProcessedCache.keys():
             self._itemProcessedCache[self.plexLibraryName] = []

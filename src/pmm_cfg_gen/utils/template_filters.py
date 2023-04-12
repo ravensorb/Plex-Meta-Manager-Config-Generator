@@ -5,13 +5,14 @@ import jsonpickle
 import urllib.parse
 import requests
 import typing as t
+import re
 from jinja2.exceptions import FilterArgumentError
 
 from plexapi.library import LibrarySection
 from plexapi.collection import Collection
-from plexapi.video import Video
+from plexapi.video import Video, Movie, Show
 
-from pmm_cfg_gen.utils.plex_utils import PlexItemHelper, PlexCollectionHelper
+from pmm_cfg_gen.utils.plex_utils import PlexItemHelper, PlexVideoHelper, PlexCollectionHelper
 from pmm_cfg_gen.utils.tmdb_utils import TheMovieDatabaseHelper
 
 # from pmm_cfg_gen.utils.tvdb_utils import TheTvDatabaseHelper
@@ -118,10 +119,6 @@ def generateTpDbSearchUrl(item, baseUrl=None) -> str:
     if globalSettingsMgr.settings.thePosterDatabase.enablePro:
         if item.type == "collection":
             urlParms.update({"category": "Collections"})
-            # if item.subtype == "movie":
-            #     urlParms.update({"category": "Movies"})
-            # elif item.subtype == "show":
-            #     urlParms.update({"category": "Shows"})
         elif item.type == "movie":
             urlParms.update({"category": "Movies"})
             urlParms.update({"year_filter": "equals"})
@@ -153,7 +150,6 @@ def generateTpDbSearchUrl(item, baseUrl=None) -> str:
 
     return str(req.url)
 
-
 def getItemGuidByName(item, guidName: str) -> str | None:
     """
      Get the Guid associated with an item. This is a wrapper around L { PlexItemHelper. getGuidByName }
@@ -163,30 +159,35 @@ def getItemGuidByName(item, guidName: str) -> str | None:
      
      @return The Guid or None if not
     """
-    plexItem = PlexItemHelper(item)
+    s = ""
 
-    return plexItem.getGuidByName(guidName)
+    if isinstance(item, Video):
+        plexItem = PlexVideoHelper(item)
 
-def formatItemTitle(item, includeYear : bool = True, includeEdition : bool = True) -> str:
-    """
-     Format the title of an item. This is a wrapper around L { PlexItemHelper. formatTitle }
+        s = plexItem.getGuidByName(guidName)
+        #print("Video: Guid '{}' for item '{}' is '{}'".format(guidName, item.title, s))
+    elif isinstance(item, Collection):
+        plexCollection = PlexCollectionHelper(item)
+
+        guids = plexCollection.getGuidByName(guidName)
+        if guids: 
+            s = ", ".join(guids)
+        #print("Collection: Guid '{}' for item '{}' is '{}'".format(guidName.title, item, s))
+    else: 
+        s = ""
+
+    return s
+
+# def formatItemTitle(item, includeYear : bool = True, includeEdition : bool = True) -> str:
+#     """
+#      Format the title of an item. This is a wrapper around L { PlexItemHelper. formatTitle }
      
-     @param item - The item to format the title of
+#      @param item - The item to format the title of
      
-     @return The formatted title
-    """
+#      @return The formatted title
+#     """
 
-    strFormat = "{{item.title}}"
-
-    if isinstance(item, Collection):
-        return PlexItemHelper.formatString(strFormat, collection=item)
-    elif isinstance(item, Video):
-        strFormat += " ({{item.year}})" if includeYear else ""
-        strFormat += " [{{item.editionTitle}}]" if includeEdition else ""
-
-        return PlexItemHelper.formatString(strFormat, item=item)
-
-    return ""
+#     return PlexItemHelper.formatItemTitle(item)
 
 def getCollectionGuidsByName(collection, guidName: str) -> list | None:
     """
@@ -201,7 +202,6 @@ def getCollectionGuidsByName(collection, guidName: str) -> list | None:
 
     return pch.getGuidByName(guidName)
 
-
 def getTmDbCollectionId(collection, tryExactMatch : bool = False) -> list[int] | str | None:
     """
      Get Tmdb collection ID. This is a wrapper around the TMDb findCollectionByName function to allow searching for collections by title
@@ -215,7 +215,6 @@ def getTmDbCollectionId(collection, tryExactMatch : bool = False) -> list[int] |
     tmdbHelper = TheMovieDatabaseHelper()
 
     return tmdbHelper.findCollectionByName(collection.title, tryExactMatch)
-
 
 # def getTvDbListId(collection) -> list[int] | str | None:
 #     tvDbHelper = TheTvDatabaseHelper()

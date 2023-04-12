@@ -38,7 +38,8 @@ templates:
 
 collections:
   "{{ item.title }}":
-    template: { name: [ tplCommon, tplTVDBCollection ], collection: "{{ item | getTmDbCollectionId(true) | join(", ") }}", list: "", show: "{{ item | getCollectionGuidsByName("tvdb") | join(", ") }}", poster: https://theposterdb.com/api/assets/ }
+    variables: { collection: "{{ item | getTmDbCollectionId(true) | join(", ") }}", show: "{{ item | getCollectionGuidsByName("tvdb") | join(", ") }}", poster: https://theposterdb.com/api/assets/ }
+    template: [ { name: tplCommonCollection }, { name: tplTVDBCollection } ]
     summary: {{ item.title }}
     # tpdb: {{ item | generateTpDbSearchUrl }}
     # tmdb: https://www.themoviedb.org/search/collection?query={{ item.title | add_prepostfix(postfix="Collection") | quote | urlencode}}

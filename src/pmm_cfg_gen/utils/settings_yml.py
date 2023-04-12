@@ -255,7 +255,7 @@ class SettingsManager:
             self._config.set_file(fileName)
 
         self._logger.debug("Loading Configuration from Environment")
-        load_dotenv()
+        load_dotenv(Path(os.getcwd(), ".env"))
         self._config.set_env("PMMCFG")
 
         if cmdLineArgs is not None:

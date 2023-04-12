@@ -8,7 +8,7 @@ from pathlib import Path
 import ruamel.yaml
 
 from pmm_cfg_gen.utils.file_utils import formatLibraryItemPath, writeFile
-from pmm_cfg_gen.utils.plex_utils import PlexCollectionHelper, PlexItemHelper
+from pmm_cfg_gen.utils.plex_utils import PlexCollectionHelper, PlexVideoHelper
 from pmm_cfg_gen.utils.settings_yml import globalSettingsMgr
 from pmm_cfg_gen.utils.template_manager import TemplateManager
 from pmm_cfg_gen.utils.template_filters import generateTpDbSearchUrl
@@ -32,7 +32,7 @@ class PlexMetaManager:
             "Merging Updates into Collection Item: '{}'".format(itemTitle)
         )
 
-        title = PlexItemHelper.cleanTitle(itemTitle)
+        title = PlexVideoHelper.cleanTitle(itemTitle)
 
         fileName = Path(self.pathLibrary, "collections", "{}.yml".format(title))
 
@@ -60,7 +60,7 @@ class PlexMetaManager:
         pass
 
     def mergeItem(self, itemTitle: str, item):
-        title = PlexItemHelper.cleanTitle(itemTitle)
+        title = PlexVideoHelper.cleanTitle(itemTitle)
 
         fileName = Path(self.pathLibrary, "metadata", "{}.yml".format(title))
 

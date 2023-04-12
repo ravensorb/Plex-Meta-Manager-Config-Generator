@@ -7,7 +7,7 @@ import json_fix
 from plexapi.library import Library
 from plexapi.collection import Collection
 from plexapi.media import Media
-from pmm_cfg_gen.utils.plex_utils import PlexItemHelper
+from pmm_cfg_gen.utils.plex_utils import PlexVideoHelper
 
 
 ###################################################################################################
@@ -28,7 +28,7 @@ class PlexLibraryCache:
 
     def addMediaItem(self, item: Media):
         if not self.__isItemCached(item):
-            itemTitle = PlexItemHelper.formatItemTitle(item)
+            itemTitle = PlexVideoHelper.formatItemTitle(item)
             self.items.append({"title": itemTitle, "metadata": item})
 
     def to_cached_items_dict(self) -> dict:
@@ -60,7 +60,7 @@ class PlexLibraryCache:
             (
                 x
                 for x in self.items
-                if x["title"] == PlexItemHelper.formatItemTitle(item)
+                if x["title"] == PlexVideoHelper.formatItemTitle(item)
             ),
             None,
         )

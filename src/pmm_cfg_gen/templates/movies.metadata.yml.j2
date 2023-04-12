@@ -12,6 +12,9 @@ metadata:
     "{{ item.metadata | formatItemTitle }}":
         year: {{ item.metadata.year }}
         title: "{{ item.metadata.title }}"
+        alt_title: "{{ item.metadata | formatItemTitle }}"
+        orig_title: "{% if item.metadata.originalTitle %}{{ item.metadata.originalTitle }}{% else %}{{ item.metadata.title }}{% endif %}"
+        {% if item.metadata.titleSort %}sort_title: "{{ item.metadata.titleSort }}"{% endif %}
         {%- if item.metadata.editionTitle and item.metadata.editionTitle | length > 0 %}edition_filter: {{ item.metadata.editionTitle }}{% endif %}
         url_poster: https://theposterdb.com/api/assets/
         # IDs: {{ item.metadata.guids | map(attribute="id") | list | join(', ')}}

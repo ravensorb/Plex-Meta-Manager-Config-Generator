@@ -7,8 +7,9 @@ import jsonpickle.handlers
 from plexapi.base import PlexObject, PlexPartialObject
 from plexapi.library import LibrarySection
 from plexapi.collection import Collection
-from plexapi.video import Video
+from plexapi.video import Video, Movie, Show
 from plexapi.server import PlexServer
+import re
 
 from pmm_cfg_gen.utils.settings_yml import globalSettingsMgr
 
@@ -59,6 +60,129 @@ jsonpickle.handlers.registry.register(PlexObject, PlexJsonHandler, True)
 
 ###################################################################################################
 
+class PlexItemHelper:
+    @classmethod
+    def isPMMItem(cls, item: PlexPartialObject):
+        """
+         Checks if item is PMM item. This is used to detect items that are part of an emmy awards
+         
+         @param cls - class that contains the item
+         @param item - item that is to be checked for PMM
+         
+         @return True if item is part of emmy awards False if it is not part of emmy a
+        """
+        # Check if the item is a PMM item.
+        for label in item.labels:
+            # Check if label is a PMM item
+            if str(label.tag).strip() in [
+                "Decade",
+                "Emmy Awards",
+                "Golden Globes Awards",
+                "Top Actors",
+                "Top Directors",
+                "Oscars Winners Awards",
+            ]:
+                logging.getLogger("pmm_cfg_gen").debug(
+                    "isPMMItem Found: {} - {}".format(item.title, label.tag)
+                )
+                return True
+
+            # Check if item is a PMM item
+            if str(item.title).strip() in [
+                "Golden Globes Best Director Winners",
+                "Golden Globes Best Picture Winners",
+                "Oscars Best Director Winners",
+                "Oscars Best Picture Winners",
+                "Newly Released",
+                "New Episodes",
+                "TMDb Airing Today",
+                "TMDb On The Air",
+            ]:
+                logging.getLogger("pmm_cfg_gen").debug(
+                    "isPMMItem Found: {} - {}".format(item.title, label.tag)
+                )
+                return True
+
+        return False
+    
+    @classmethod
+    def cleanString(cls, title: str) -> str:
+        """
+         Cleans a title to make it suitable for display. This is a helper function for L { Title } and L { TitleFromText }.
+         
+         @param cls - The class that defines the type of title to be cleaned.
+         @param s - The title to be cleaned. This should be a string that has no punctuation or other non - alphanumeric characters.
+         
+         @return A string that has all characters in the form of a - zA - Z0 - 9 and underscores
+        """
+        return title.replace("/", "-").replace("\\", "-").replace(":", "-").replace("*", "-").replace("?", "-").replace("\"", "-").replace("<", "-").replace(">", "-").replace("|", "-")
+
+    @classmethod
+    def formatString(cls, formatString: str, library : LibrarySection | None = None, collection : Collection | None = None, item : Video | None = None, cleanTitleStrings : bool = True) -> str:
+        """
+        The format string to format. This is a string with placeholders to be substituted.
+        
+        @param cls - The class that owns the LibrarySection. Defaults to None.
+        @param library - The LibrarySection to format. Defaults to None.
+        @param collection - The Collection to format. Defaults to None.
+        @param item - The Videobutton to format. Defaults to None.
+        
+        @return The formatted string if there are placeholders or the original string
+        """
+
+        result = formatString
+        
+        if library is not None:
+            result = result.replace("{{library.title}}", cls.cleanString(str(library.title)) if cleanTitleStrings else library.title)
+            result = result.replace("{{library.type}}", library.type) if library.type else result
+
+        if collection is not None:
+            result = result.replace("{{collection.title}}", cls.cleanString(collection.title) if cleanTitleStrings else collection.title)
+            result = result.replace("{{collection.type}}", collection.type if collection.type else "")
+            result = result.replace("{{collection.subtype}}", collection.subtype if collection.subtype else "")
+            result = result.replace("{{collection.minYear}}", str(collection.minYear) if collection.minYear else "")
+            result = result.replace("{{collection.minYear}}", str(collection.maxYear) if collection.maxYear else "")
+
+        if item is not None:
+            result = result.replace("{{item.title}}", cls.cleanString(item.title) if cleanTitleStrings else item.title)
+            result = result.replace("{{item.titleSort}}", item.titleSort if item.titleSort else "")
+            result = result.replace("{{item.year}}", str(item.year) if item.year and str(item.year) not in item.title else "")
+            result = result.replace("{{item.type}}", item.type if item.type else "")
+            result = result.replace("{{item.titleSort}}", item.titleSort if item.titleSort else "")
+            result = result.replace("{{item.contentRating}}", item.contentRating if item.contentRating else "")
+            result = result.replace("{{item.editionTitle}}", item.editionTitle if isinstance(item, Movie) and item.editionTitle else "")
+
+        #logging.getLogger("pmm_cfg_gen").debug("formatString: {} -> {}".format(formatString, result))
+
+        return result.replace("()", "").replace("[]", "").strip()
+
+    @classmethod
+    def cleanItemTitle(cls, item : PlexPartialObject) -> str:
+        """
+         Clean the title of an item. This is a convenience method for L { cleanTitle }. It removes punctuation and other non - title characters that are illegal in Plex's title and returns the cleaned title.
+         
+         @param cls - The class to use for this method. Should be a subclass of L { PlexPartialObject }.
+         @param item - The item to clean. Should be a L { PlexPartialObject }.
+         
+         @return The cleaned title of the item as a string. Will be empty if there is no title or it is not valid
+        """
+        return cls.cleanString(str(item.title))
+
+    @classmethod
+    def formatItemTitle(cls, item : PlexPartialObject, includeYear : bool = True, includeEdition : bool = True ) -> str:
+
+        strFormat = "{{item.title}}"
+
+        if isinstance(item, Collection):
+            return PlexItemHelper.formatString(strFormat, collection=item)
+        elif isinstance(item, Video):
+            if re.match(r"[\s\S]*\([\d]{4}\)$", item.title, flags=re.DOTALL) is None:
+                strFormat += " ({{item.year}})" if includeYear else ""
+            strFormat += " [{{item.editionTitle}}]" if includeEdition and isinstance(item, Movie) else ""
+
+            return PlexItemHelper.formatString(strFormat, item=item)
+
+        return ""
 
 class PlexCollectionHelper:
     __collection: Collection
@@ -88,7 +212,7 @@ class PlexCollectionHelper:
 
         # Add guids to the guids.
         for item in self.__collection.children:
-            pih = PlexItemHelper(item)
+            pih = PlexVideoHelper(item)
 
             # Add guids to the list of guids.
             for key in self.__guids.keys():
@@ -115,7 +239,7 @@ class PlexCollectionHelper:
         return self.__guids
 
 
-class PlexItemHelper:
+class PlexVideoHelper:
     __item: PlexPartialObject
     __guids: dict[str, str]
 
@@ -194,119 +318,3 @@ class PlexItemHelper:
          @return the guids of the entity as a dictionary with keys that correspond to the entity's GUID and values that correspond
         """
         return self.__guids
-
-    @classmethod
-    def isPMMItem(cls, item: PlexPartialObject):
-        """
-         Checks if item is PMM item. This is used to detect items that are part of an emmy awards
-         
-         @param cls - class that contains the item
-         @param item - item that is to be checked for PMM
-         
-         @return True if item is part of emmy awards False if it is not part of emmy a
-        """
-        # Check if the item is a PMM item.
-        for label in item.labels:
-            # Check if label is a PMM item
-            if str(label.tag).strip() in [
-                "Decade",
-                "Emmy Awards",
-                "Golden Globes Awards",
-                "Top Actors",
-                "Top Directors",
-                "Oscars Winners Awards",
-            ]:
-                logging.getLogger("pmm_cfg_gen").debug(
-                    "isPMMItem Found: {} - {}".format(item.title, label.tag)
-                )
-                return True
-
-            # Check if item is a PMM item
-            if str(item.title).strip() in [
-                "Golden Globes Best Director Winners",
-                "Golden Globes Best Picture Winners",
-                "Oscars Best Director Winners",
-                "Oscars Best Picture Winners",
-                "Newly Released",
-                "New Episodes",
-                "TMDb Airing Today",
-                "TMDb On The Air",
-            ]:
-                logging.getLogger("pmm_cfg_gen").debug(
-                    "isPMMItem Found: {} - {}".format(item.title, label.tag)
-                )
-                return True
-
-        return False
-
-    @classmethod
-    def cleanItemTitle(cls, item : PlexPartialObject) -> str:
-        """
-         Clean the title of an item. This is a convenience method for L { cleanTitle }. It removes punctuation and other non - title characters that are illegal in Plex's title and returns the cleaned title.
-         
-         @param cls - The class to use for this method. Should be a subclass of L { PlexPartialObject }.
-         @param item - The item to clean. Should be a L { PlexPartialObject }.
-         
-         @return The cleaned title of the item as a string. Will be empty if there is no title or it is not valid
-        """
-        return cls.cleanTitle(str(item.title))
-
-    @classmethod
-    def cleanTitle(cls, title: str) -> str:
-        """
-         Cleans a title to make it suitable for display. This is a helper function for L { Title } and L { TitleFromText }.
-         
-         @param cls - The class that defines the type of title to be cleaned.
-         @param s - The title to be cleaned. This should be a string that has no punctuation or other non - alphanumeric characters.
-         
-         @return A string that has all characters in the form of a - zA - Z0 - 9 and underscores
-        """
-        return title.replace("/", "-").replace("\\", "-").replace(":", "-").replace("*", "-").replace("?", "-").replace("\"", "-").replace("<", "-").replace(">", "-").replace("|", "-")
-
-    @classmethod
-    def formatItemTitle(cls, item : PlexPartialObject, includeYear : bool = True, includeEdition : bool = True ) -> str:
-
-        itemTitle = item.title
-        itemTitle = "{} ({})".format(itemTitle, item.year) if item.year and includeYear else itemTitle
-        itemTitle = "{} [{}]".format(itemTitle, item.editionTitle) if item.editionTitle and includeEdition else itemTitle
-
-        return itemTitle
-
-    @classmethod
-    def formatString(cls, formatString: str, library : LibrarySection | None = None, collection : Collection | None = None, item : Video | None = None, cleanTitleStrings : bool = True) -> str:
-        """
-        The format string to format. This is a string with placeholders to be substituted.
-        
-        @param cls - The class that owns the LibrarySection. Defaults to None.
-        @param library - The LibrarySection to format. Defaults to None.
-        @param collection - The Collection to format. Defaults to None.
-        @param item - The Videobutton to format. Defaults to None.
-        
-        @return The formatted string if there are placeholders or the original string
-        """
-
-        result = formatString
-        
-        if library is not None:
-            result = result.replace("{{library.title}}", cls.cleanTitle(str(library.title)) if cleanTitleStrings else library.title)
-            result = result.replace("{{library.type}}", library.type) if library.type else result
-
-        if collection is not None:
-            result = result.replace("{{collection.title}}", cls.cleanItemTitle(collection) if cleanTitleStrings else collection.title)
-            result = result.replace("{{collection.type}}", collection.type if collection.type else "")
-            result = result.replace("{{collection.subtype}}", collection.subtype if collection.subtype else "")
-            result = result.replace("{{collection.minYear}}", str(collection.minYear) if collection.minYear else "")
-            result = result.replace("{{collection.minYear}}", str(collection.maxYear) if collection.maxYear else "")
-
-        if item is not None:
-            result = result.replace("{{item.title}}", cls.cleanItemTitle(item) if cleanTitleStrings else item.title)
-            result = result.replace("{{item.titleSort}}", item.titleSort if item.titleSort else "")
-            result = result.replace("{{item.year}}", str(item.year) if item.year else "")
-            result = result.replace("{{item.editionTitle}}", item.editionTitle if item.editionTitle else "")
-            result = result.replace("{{item.type}}", item.type if item.type else "")
-            result = result.replace("{{item.titleSort}}", item.titleSort if item.titleSort else "")
-            result = result.replace("{{item.contentRating}}", item.contentRating if item.contentRating else "")
-
-        #logging.getLogger("pmm_cfg_gen").debug("formatString: {} -> {}".format(formatString, result))
-
-        return result.replace("()", "").replace("[]", "").strip()
