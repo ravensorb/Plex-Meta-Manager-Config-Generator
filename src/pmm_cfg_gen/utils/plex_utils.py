@@ -11,10 +11,9 @@ from plexapi.video import Video, Movie, Show
 from plexapi.server import PlexServer
 import re
 
-from pmm_cfg_gen.utils.settings_yml import globalSettingsMgr
+from pmm_cfg_gen.utils.settings_utils_v2 import globalSettingsMgr
 
 ###################################################################################################
-
 
 # @jsonpickle.handlers.register(PlexObject, base=True)
 class PlexJsonHandler(jsonpickle.handlers.BaseHandler):

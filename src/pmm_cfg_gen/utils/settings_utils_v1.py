@@ -27,6 +27,7 @@ class SettingsOutputFileNames:
         self.collectionsReport = collectionsReport
         self.metadataReport = metadataReport
 
+
 class SettingsOutput:
     path: str
     pathFormat: str
@@ -42,6 +43,7 @@ class SettingsOutput:
         self.pathFormat = pathFormat
         self.fileNameFormat = fileNameFormat
 
+
 class SettingsPlex:
     serverUrl: str
     token: str
@@ -53,6 +55,20 @@ class SettingsPlex:
         self.libraries = libraries
 
 
+class SettingsPlexMetaManager:
+    cacheExistingFiles : bool
+    folders: list[dict]
+
+    def __init__(self, cacheExistingFiles: bool, folders: list[dict]) -> None:        
+        self.cacheExistingFiles = cacheExistingFiles
+        self.folders = folders
+
+    def getFolderByLibraryName(self, libraryName: str) -> dict | None:
+        result = next((x for x in self.folders if x["library"] == libraryName), None)
+
+        return result
+
+    
 class SettingsTemplateFiles:
     yamlFileName: str | None
     jsonFileName: str | None
@@ -207,6 +223,7 @@ class Settings:
     templates: SettingsTemplates
     output: SettingsOutput
     generate: SettingsGenerate
+    plexMetaManager: SettingsPlexMetaManager
 
     def __init__(
         self,
@@ -217,6 +234,7 @@ class Settings:
         templates: SettingsTemplates,
         output: SettingsOutput,
         generate: SettingsGenerate,
+        plexMetaManager: SettingsPlexMetaManager
     ) -> None:
         self.plex = plex
         self.thePosterDatabase = thePosterDatabase
@@ -225,6 +243,7 @@ class Settings:
         self.templates = templates
         self.output = output
         self.generate = generate
+        self.plexMetaManager = plexMetaManager
 
 
 #######################################################################
@@ -437,6 +456,10 @@ class SettingsManager:
                 enableYaml=self._config["generate"]["enableYaml"].get(confuse.Optional(True)),  # type: ignore
                 enableItemReport=self._config["generate"]["enableItemReport"].get(confuse.Optional(True)),  # type: ignore
             ),
+            plexMetaManager=SettingsPlexMetaManager(
+                cacheExistingFiles=self._config["plexMetaManager"]["cacheExistingFiles"].get(confuse.Optional(False)),  # type: ignore
+                folders=self._config["plexMetaManager"]["folders"].get(confuse.Optional(None)),  # type: ignore
+            )
         )
 
         self._logger.debug("Active Settings:")

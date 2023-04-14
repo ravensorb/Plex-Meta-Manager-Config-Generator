@@ -1,6 +1,14 @@
 plex:
   serverUrl: ${PLEX_SERVER:-https://plex.ravenwolf.org:32400}
   token: ${PLEX_TOKEN}
+#   library:
+#   - Library1
+#   - Library2
+# plexMetaManager:
+#   cacheExistingFiles: false
+#   folders:
+#     - library: Movies
+#       path: /path/to/pmm/library
 thePosterDatabase:
   enablePro: True
   searchUrlPro: https://theposterdb.com/search/advanced/results
@@ -8,39 +16,65 @@ thePosterDatabase:
   dbAssetUrl: https://theposterdb.com/api/assets/
 theMovieDatabase:
   limitCollectionResults: 4
+  apiKey: "sdfsdfsddf"
+  language: "en-us"
+  region: "us"
+# theTvDatabase:
+#   apiKey:
 templates:
-  collections:
-    movies:
-      yamlFileName: movies.collection.yml.j2
-      jsonFileName: movies.collection.json.j2
-    shows:
-      yamlFileName: tvshows.collection.yml.j2
-      jsonFileName: tvshows.collection.json.j2
+  libray:
+  - { type: "any", format: "yaml", file: "library.yaml.j2" }
+  - { type: "any", format: "html", file: "library.html.j2" }
+  - { type: "any", format: "json", file: "library.json.j2", subFolder: "json" }
+  collection:
+  - { type: "movie", format: "yaml", file: "movie.collection.yaml.j2" }
+  - { type: "movie", format: "html", file: "movie.collection.html.j2" }
+  - { type: "movie", format: "json", file: "movie.collection.json.j2", subFolder: "json" }
+  - { type: "show", format: "yaml", file: "show.collection.yaml.j2" }
+  - { type: "show", format: "html", file: "show.collection.html.j2" }
+  - { type: "show", format: "json", file: "show.collection.json.j2", subFolder: "json" }
+  - { type: "music", format: "yaml", file: "music.collection.yaml.j2" }
+  - { type: "music", format: "html", file: "music.collection.html.j2" }
+  - { type: "music", format: "json", file: "music.collection.json.j2", subFolder: "json" }
+  - { type: "report", format: "yaml", file: "report.collection.yaml.j2" }
+  - { type: "report", format: "html", file: "report.collection.html.j2" }
+  - { type: "report", format: "json", file: "report.collection.json.j2", subFolder: "json" }
   metadata:
-    movies:
-      yamlFileName: movies.metadata.yml.j2
-      jsonFileName: movies.metadata.json.j2
-    shows:
-      yamlFileName: tvshows.metadata.yml.j2
-      jsonFileName: tvshows.metadata.json.j2
-    library:
-      jsonFileName: library.json.j2
-  reports:
-    collection:
-      jsonFileName: report.collection.json.j2
-      htmlFileName: report.collection.html.j2
-    metadata:
-      jsonFileName: report.metadata.json.j2
-      htmlFileName: report.metadata.html.j2
+  - { type: "movie", format: "yaml", file: "movie.metadata.yaml.j2" }
+  - { type: "movie", format: "html", file: "movie.metadata.html.j2" }
+  - { type: "movie", format: "json", file: "movie.metadata.json.j2", subFolder: "json" }
+  - { type: "show", format: "yaml", file: "show.metadata.yaml.j2" }
+  - { type: "show", format: "html", file: "show.metadata.html.j2" }
+  - { type: "show", format: "json", file: "show.metadata.json.j2", subFolder: "json" }
+  - { type: "music", format: "yaml", file: "music.metadata.yaml.j2" }
+  - { type: "music", format: "html", file: "music.metadata.html.j2" }
+  - { type: "music", format: "json", file: "music.metadata.json.j2", subFolder: "json" }
+  - { type: "report", format: "yaml", file: "report.metadata.yaml.j2" }
+  - { type: "report", format: "html", file: "report.metadata.html.j2" }
+  - { type: "report", format: "json", file: "report.metadata.json.j2", subFolder: "json" }
+  overlay:
+  - { type: "movie", format: "yaml", file: "movie.overlay.yaml.j2" }
+  - { type: "movie", format: "html", file: "movie.overlay.html.j2" }
+  - { type: "movie", format: "json", file: "movie.overlay.json.j2", subFolder: "json" }
+  - { type: "show", format: "yaml", file: "show.overlay.yaml.j2" }
+  - { type: "show", format: "html", file: "show.overlay.html.j2" }
+  - { type: "show", format: "json", file: "show.overlay.json.j2", subFolder: "json" }
+  - { type: "music", format: "yaml", file: "music.overlay.yaml.j2" }
+  - { type: "music", format: "html", file: "music.overlay.html.j2" }
+  - { type: "music", format: "json", file: "music.overlay.json.j2", subFolder: "json" }
+  - { type: "report", format: "yaml", file: "report.overlay.yaml.j2" }
+  - { type: "report", format: "html", file: "report.overlay.html.j2" }
+  - { type: "report", format: "json", file: "report.overlay.json.j2", subFolder: "json" }
 output:
   path: "./data"
   pathFormat: "{{library.title}}"
   fileNameFormat:
     collections: "{{collection.title}}"
     metadata: "{{item.title}} ({{item.year}}) [{{item.editionTitle}}]"
-    collectionsReport: "{{library.title}} - Report"
-    metedataReport: "{{library.title}} - Items"
+    collectionsReport: "{{library.title}} - Collection Report"
+    metadataReport: "{{library.title}} - Metadata Report"
 generate:
   enableJson: False
   enableYaml: True
+  enableHtml: True
   enableItemReport: True

@@ -9,6 +9,7 @@ import os
 import coloredlogs
 import yaml
 
+###################################################################################################
 
 class RollingFileHanderEx(logging.handlers.RotatingFileHandler):
     def __init__(
@@ -25,6 +26,7 @@ class RollingFileHanderEx(logging.handlers.RotatingFileHandler):
 
         super().__init__(filename, mode, maxBytes, backupCount, encoding, delay, errors)
 
+###################################################################################################
 
 def setup_logging(
     default_path="logging.yaml", default_level=logging.INFO, env_key="LOG_CFG"

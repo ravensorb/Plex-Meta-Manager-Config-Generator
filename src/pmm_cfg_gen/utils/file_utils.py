@@ -4,7 +4,7 @@
 import logging
 from pathlib import Path
 
-from pmm_cfg_gen.utils.settings_yml import SettingsOutput, globalSettingsMgr
+from pmm_cfg_gen.utils.settings_utils_v2 import SettingsOutput, globalSettingsMgr
 from pmm_cfg_gen.utils.plex_utils import PlexItemHelper
 
 #######################################################################

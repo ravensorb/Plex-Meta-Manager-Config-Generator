@@ -9,9 +9,9 @@ import signal
 import jsonpickle
 
 from pmm_cfg_gen.utils.cli_args import globalArgs
-from pmm_cfg_gen.utils.logging import setup_logging
+from pmm_cfg_gen.utils.settings_utils_v2 import globalSettingsMgr
+from pmm_cfg_gen.utils.logging_utils import setup_logging
 from pmm_cfg_gen.utils.plex import PlexLibraryProcessor
-from pmm_cfg_gen.utils.settings_yml import globalSettingsMgr
 
 #######################################################################
 

@@ -8,10 +8,10 @@ import jinja2
 import jinja2.exceptions
 import jsonpickle
 
+from pmm_cfg_gen.utils.settings_utils_v2 import globalSettingsMgr
 from pmm_cfg_gen.utils.file_utils import writeFile
 from pmm_cfg_gen.utils.plex_utils import PlexItemHelper, PlexVideoHelper, PlexCollectionHelper
 import pmm_cfg_gen.utils.template_filters as template_filters
-from pmm_cfg_gen.utils.settings_yml import globalSettingsMgr
 
 #######################################################################
 
@@ -40,7 +40,7 @@ class TemplateManager:
         tpl = self.__getTemplate(templateName)
 
         if tpl is None:
-            self._logger.warn("Template Does not exist: '{}'".format(templateName))
+            self._logger.debug("Unable to load requested tempalte: '{}'".format(templateName))
 
             return None
 
@@ -76,6 +76,10 @@ class TemplateManager:
                 tpl = self.__tplEnv.get_template(str(templateName))
 
                 self.__cachedTemplates[templateName] = tpl
+            except jinja2.exceptions.TemplateNotFound:
+                self._logger.debug("Requested Template does not exist: '{}'".format(templateName))
+
+                return None
             except (
                 jinja2.TemplateSyntaxError,
                 jinja2.exceptions.UndefinedError,
@@ -89,6 +93,8 @@ class TemplateManager:
                     self._logger.exception(
                         "Template Syntax Error: '{}'".format(templateName)
                     )
+
+                return None
             except:
                 if self._logger.isEnabledFor(logging.DEBUG):
                     self._logger.exception(
