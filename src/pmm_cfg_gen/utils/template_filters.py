@@ -21,6 +21,42 @@ from pmm_cfg_gen.utils.tmdb_utils import TheMovieDatabaseHelper
 # Jinja2 filters and utilitiy methods
 
 
+def concat(*args: t.Any, **kwargs: t.Any) -> list:
+    """
+     Concatenates arguments to a list. This is useful for filters that need to combine iterables and lists into a single list
+     
+     @param args - The arguments to be concatenated
+     @param kwargs - The keyword arguments to be concatenated
+     
+     @return A new list with all the arguments concatenated into it.
+    """
+    result = []
+
+    # Add prefix postfix and prefix arguments to the arguments.
+    if not args:    
+        # Raise an exception if keyword arguments are not keyword arguments.
+        if kwargs:
+            raise FilterArgumentError(
+                f"Unexpected keyword argument {next(iter(kwargs))!r}"
+            )
+    else:
+        try:
+            for a in args:
+                if isinstance(a, (list, tuple)):
+                    result.extend(a)
+                else:
+                    result.append(str(a))
+
+        except LookupError:
+            raise FilterArgumentError("concat requires a prefix and postfix argument") from None
+
+    result = list(set(list(map(str, result))))
+
+    while ("" in result):
+        result.remove("")
+
+    return result
+
 def formatJson(data, indent: int = 4):
     """
      Formats data to JSON. This is a helper function for L { jsonpickle. dumps } that does not include unpicklable objects.
@@ -177,17 +213,6 @@ def getItemGuidByName(item, guidName: str) -> str | None:
 
     return s
 
-# def formatItemTitle(item, includeYear : bool = True, includeEdition : bool = True) -> str:
-#     """
-#      Format the title of an item. This is a wrapper around L { PlexItemHelper. formatTitle }
-     
-#      @param item - The item to format the title of
-     
-#      @return The formatted title
-#     """
-
-#     return PlexItemHelper.formatItemTitle(item)
-
 def getCollectionGuidsByName(collection, guidName: str) -> list | None:
     """
      Get a list of Guid's from a PlexCollection. This is a convenience function to call L { PlexCollectionHelper }'s C { getGuidByName } method
@@ -201,7 +226,7 @@ def getCollectionGuidsByName(collection, guidName: str) -> list | None:
 
     return pch.getGuidByName(guidName)
 
-def getTmDbCollectionId(collection, tryExactMatch : bool = False) -> list[int] | str | None:
+def getTmDbCollectionId(collection, tryExactMatch : bool = False) -> list[int] | None:
     """
      Get Tmdb collection ID. This is a wrapper around the TMDb findCollectionByName function to allow searching for collections by title
      
@@ -214,6 +239,24 @@ def getTmDbCollectionId(collection, tryExactMatch : bool = False) -> list[int] |
     tmdbHelper = TheMovieDatabaseHelper()
 
     return tmdbHelper.findCollectionByName(collection.title, tryExactMatch)
+
+def getPMMSeason(pmm : dict[str, dict], seasonNumber, attribute : str | None = None):
+    """
+     Get the poster URL for a season from the Plex Meta Manager season dictionary
+     
+     @param pmm - The Plex Meta Manager season dictionary
+     @param seasonNumber - The season number
+     
+     @return The season or None if not found
+    """
+    if pmm is None: return None
+
+    if "seasons" in pmm.keys():
+        for season in pmm["seasons"]:
+            if season == seasonNumber:
+                return pmm["seasons"][season][attribute] if attribute in pmm["seasons"][season] else pmm["seasons"][season]
+
+    return None
 
 # def getTvDbListId(collection) -> list[int] | str | None:
 #     tvDbHelper = TheTvDatabaseHelper()

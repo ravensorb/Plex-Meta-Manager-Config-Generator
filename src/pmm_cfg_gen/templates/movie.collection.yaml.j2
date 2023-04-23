@@ -27,6 +27,7 @@ templates:
     - collection
     - list
     - movie
+    tmdb_collection: <<collection>>
     tmdb_collection_details: <<collection>>
     tmdb_movie: <<movie>>
     tmdb_movie_details: <<movie>>
@@ -36,7 +37,11 @@ templates:
 
 collections:
   "{{ item.title }}":
-    variables: { collection: "{{ item | getTmDbCollectionId(true) | join(", ") }}", movie: "{{ item | getCollectionGuidsByName("tmdb") | join(", ") }}", poster: https://theposterdb.com/api/assets/ }
+    {%- set lstCollection = item | getTmDbCollectionId(true) | concat(pmm.collection) | unique | join(", ") | default("") %}
+    {%- set lstList = pmm.list | list | unique | join(", ") %}
+    {%- set lstShow = item | getCollectionGuidsByName("tvdb") | concat(pmm.show) | unique | join(", ") %}
+    {%- set lstMovie = item | getCollectionGuidsByName("tmdb") | concat(pmm.movie) | unique | join(", ") %}
+    variables: { {% if lstCollection | length > 0 %}collection: "{{ lstCollection }}", {% endif %}{% if lstList | length > 0 %}list: "{{ lstList }}", {% endif %}{% if lstMovie | length > 0 %}movie: "{{ lstMovie }}", {% endif %}{% if lstShow | length > 0 %}show: "{{ lstShow }}", {% endif %}{% if settings.thePosterDatabase.dbAssetUrl %}poster: {{ pmm.poster | default(settings.thePosterDatabase.dbAssetUrl, True) }}{% endif %} }
     template: [ { name: tplCommonCollection }, { name: tplTMDBCollection } ]
     # tpdb: {{ item | generateTpDbSearchUrl }}
     # tmdb: https://www.themoviedb.org/search/collection?query={{ item.title | add_prepostfix(postfix=" Collection") | quote | urlencode}}
@@ -44,5 +49,8 @@ collections:
     # imdb: https://www.imdb.com/find/?s=tt{% if item.subtype == 'movie' %}&ttype=ft{% elif item.subtype == 'show' %}&ttype=tv{% endif %}&q={{ item.title | urlencode }}
     # trakt: https://trakt.tv/search/lists?query={{ item.title | urlencode }}
     {% if item.childCount != 1 %}# {% endif %}collection_mode: hide
-    # trakt_list:
-    #  - 
+    {% if not pmm.trakt %}# {% endif %}trakt_list:
+    {%- if not pmm.trakt %}
+    #   -{% else %}
+    {%- for t in pmm.trakt%}
+       - {{ t }} {% endfor %} {% endif %}

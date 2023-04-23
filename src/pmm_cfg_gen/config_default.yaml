@@ -16,7 +16,7 @@ thePosterDatabase:
   dbAssetUrl: https://theposterdb.com/api/assets/
 theMovieDatabase:
   limitCollectionResults: 4
-  apiKey: "sdfsdfsddf"
+  apiKey: ""
   language: "en-us"
   region: "us"
 # theTvDatabase:

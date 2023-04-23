@@ -141,6 +141,7 @@ class PlexLibraryProcessor:
                     )
 
         if globalSettingsMgr.settings.plexMetaManager.cacheExistingFiles:
+            self._logger.debug("Checking for Plex Meta Manager Cache enablement for this library")
             pmm = globalSettingsMgr.settings.plexMetaManager.getFolderByLibraryName(self.plexLibraryName)
             if pmm is not None:
                 self._logger.info("Loading Plex Meta Manager File Cache")

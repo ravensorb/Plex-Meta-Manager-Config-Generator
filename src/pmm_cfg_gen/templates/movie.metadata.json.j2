@@ -1,8 +1,1 @@
-[
-{% for item in items %}
-    { 
-        "metadata" : {{ item.metadata | formatJson(4) }},
-        "pmm": {{ item.pmm | formatJson(4) }}
-    }{% if not loop.last %},{% endif %}
-{% endfor %}
-]
+{{ items | formatJson }}

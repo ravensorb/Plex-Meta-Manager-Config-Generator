@@ -33,9 +33,9 @@ class TheMovieDatabaseHelper:
         else:
             self.__tmdbApi = None
 
-    def findCollectionByName(self, name: str, exactMatch: bool = False) -> list[int] | str:
+    def findCollectionByName(self, name: str, exactMatch: bool = False) -> list[int]:
         if self.__tmdbApi is None:
-            return ""
+            return []
 
         name = name.strip()
         
@@ -67,5 +67,5 @@ class TheMovieDatabaseHelper:
             results = results[
                 : globalSettingsMgr.settings.theMovieDatabase.limitCollectionResults
             ]
-
-        return results if results is not None else ""
+        
+        return results if results is not None else []

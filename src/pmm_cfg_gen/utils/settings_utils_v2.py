@@ -121,7 +121,7 @@ class SettingsPlexMetaManager:
         self.folders = folders
 
     def getFolderByLibraryName(self, libraryName: str) -> SettingsPlexMetaManagerFolder | None:
-        result = next((x for x in self.folders if x.library == libraryName), None)
+        result = next((x for x in self.folders if x.library.strip() == libraryName.strip()), None)
 
         return result
 

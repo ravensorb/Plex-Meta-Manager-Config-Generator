@@ -40,7 +40,7 @@ class TemplateManager:
         tpl = self.__getTemplate(templateName)
 
         if tpl is None:
-            self._logger.debug("Unable to load requested tempalte: '{}'".format(templateName))
+            self._logger.debug("Unable to load requested template: '{}'".format(templateName))
 
             return None
 
@@ -111,13 +111,17 @@ class TemplateManager:
         return self.__cachedTemplates[templateName]
 
     def __registerFilters(self):
-        self.__tplEnv.filters["isPMMItem"] = PlexItemHelper.isPMMItem
         self.__tplEnv.filters["formatJson"] = template_filters.formatJson
+        self.__tplEnv.filters["concat"] = template_filters.concat
+        self.__tplEnv.filters["quote"] = template_filters.quote
+        self.__tplEnv.filters["add_prepostfix"] = template_filters.add_prepostfix
+        
+        self.__tplEnv.filters["formatItemTitle"] = PlexItemHelper.formatItemTitle
+        self.__tplEnv.filters["isPMMItem"] = PlexItemHelper.isPMMItem
+        self.__tplEnv.filters["getPMMSeason"] = template_filters.getPMMSeason
+        
         self.__tplEnv.filters["generateTpDbSearchUrl"] = template_filters.generateTpDbSearchUrl
         self.__tplEnv.filters["getItemGuidByName"] = template_filters.getItemGuidByName
         self.__tplEnv.filters["getCollectionGuidsByName"] = template_filters.getCollectionGuidsByName
         self.__tplEnv.filters["getTmDbCollectionId"] = template_filters.getTmDbCollectionId
         # self.__tplEnv.filters["getTvDbListId"] = template_filters.getTvDbListId
-        self.__tplEnv.filters["quote"] = template_filters.quote
-        self.__tplEnv.filters["add_prepostfix"] = template_filters.add_prepostfix
-        self.__tplEnv.filters["formatItemTitle"] = PlexItemHelper.formatItemTitle

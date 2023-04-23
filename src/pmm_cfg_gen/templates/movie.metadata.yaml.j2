@@ -16,7 +16,7 @@ metadata:
         orig_title: "{% if item.metadata.originalTitle %}{{ item.metadata.originalTitle }}{% else %}{{ item.metadata.title }}{% endif %}"
         {% if item.metadata.titleSort %}sort_title: "{{ item.metadata.titleSort }}"{% endif %}
         {%- if item.metadata.editionTitle and item.metadata.editionTitle | length > 0 %}edition_filter: {{ item.metadata.editionTitle }}{% endif %}
-        url_poster: https://theposterdb.com/api/assets/
+        {% if not item.pmm.poster %}# {% endif %}url_poster: {{ item.pmm.poster | default(settings.thePosterDatabase.dbAssetUrl, True) }}
         # IDs: {{ item.metadata.guids | map(attribute="id") | list | join(', ')}}
         # tpdb: {{ item.metadata | generateTpDbSearchUrl }}
         # tmdb: {% if item.metadata | getItemGuidByName("tmdb") | default("") | length > 0 %}https://www.themoviedb.org/{% if item.metadata.type == "movie" %}movie{% elif item.metadata.type == "show" %}tv{% else %}{% endif %}/{{ item.metadata | getItemGuidByName("tmdb") }}{% endif %}

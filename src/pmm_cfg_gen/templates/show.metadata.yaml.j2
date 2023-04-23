@@ -15,7 +15,7 @@ metadata:
         alt_title: "{{ item.metadata | formatItemTitle }}"
         orig_title: "{{ item.metadata.title }}"
         {% if item.metadata.titleSort %}sort_title: "{{ item.metadata.titleSort }}"{% endif %}
-        url_poster: https://theposterdb.com/api/assets/
+        {% if not item.pmm.poster %}# {% endif %}url_poster: {{ item.pmm.poster | default(settings.thePosterDatabase.dbAssetUrl) }}
         # IDs: {{ item.metadata.guids | map(attribute="id") | list | join(', ')}}
         # tpdb: {{ item.metadata | generateTpDbSearchUrl }}
         # tmdb: {% if item.metadata | getItemGuidByName("tmdb") | default("") | length > 0 %}https://www.themoviedb.org/{% if item.metadata.type == "movie" %}movie{% elif item.metadata.type == "show" %}tv{% else %}{% endif %}/{{ item.metadata | getItemGuidByName("tmdb") }}{% endif %}
@@ -25,7 +25,7 @@ metadata:
         seasons:
         {%- for season in item.seasons %}
             {{ season.seasonNumber }}:
-                url_poster: https://theposterdb.com/api/assets/
+                {% if not item.pmm.poster %}# {% endif %}url_poster: {{ item.pmm | getPMMSeason(season.seasonNumber, "poster") | default(settings.thePosterDatabase.dbAssetUrl, True) }}
                 # IDs: {{ season.guids | map(attribute="id") | list | join(', ')}}
                 # {{ season | generateTpDbSearchUrl }}
         {%- endfor %}
