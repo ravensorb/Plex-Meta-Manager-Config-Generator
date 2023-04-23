@@ -22,49 +22,49 @@ theMovieDatabase:
 # theTvDatabase:
 #   apiKey:
 templates:
-  libray:
-  - { type: "any", format: "yaml", file: "library.yaml.j2" }
-  - { type: "any", format: "html", file: "library.html.j2" }
-  - { type: "any", format: "json", file: "library.json.j2", subFolder: "json" }
+  library:
+  - { type: "library.any", format: "yaml", file: "library.yaml.j2" }
+  - { type: "library.any", format: "html", file: "library.html.j2" }
+  - { type: "library.any", format: "json", file: "library.json.j2", subFolder: "json" }
   collection:
-  - { type: "movie", format: "yaml", file: "movie.collection.yaml.j2" }
-  - { type: "movie", format: "html", file: "movie.collection.html.j2" }
-  - { type: "movie", format: "json", file: "movie.collection.json.j2", subFolder: "json" }
-  - { type: "show", format: "yaml", file: "show.collection.yaml.j2" }
-  - { type: "show", format: "html", file: "show.collection.html.j2" }
-  - { type: "show", format: "json", file: "show.collection.json.j2", subFolder: "json" }
-  - { type: "music", format: "yaml", file: "music.collection.yaml.j2" }
-  - { type: "music", format: "html", file: "music.collection.html.j2" }
-  - { type: "music", format: "json", file: "music.collection.json.j2", subFolder: "json" }
-  - { type: "report", format: "yaml", file: "report.collection.yaml.j2" }
-  - { type: "report", format: "html", file: "report.collection.html.j2" }
-  - { type: "report", format: "json", file: "report.collection.json.j2", subFolder: "json" }
+  - { type: "collection.movie", format: "yaml", file: "movie.collection.yaml.j2" }
+  - { type: "collection.movie", format: "html", file: "movie.collection.html.j2" }
+  - { type: "collection.movie", format: "json", file: "movie.collection.json.j2", subFolder: "json" }
+  - { type: "collection.show", format: "yaml", file: "show.collection.yaml.j2" }
+  - { type: "collection.show", format: "html", file: "show.collection.html.j2" }
+  - { type: "collection.show", format: "json", file: "show.collection.json.j2", subFolder: "json" }
+  - { type: "collection.music", format: "yaml", file: "music.collection.yaml.j2" }
+  - { type: "collection.music", format: "html", file: "music.collection.html.j2" }
+  - { type: "collection.music", format: "json", file: "music.collection.json.j2", subFolder: "json" }
+  - { type: "collection.report", format: "yaml", file: "report.collection.yaml.j2" }
+  - { type: "collection.report", format: "html", file: "report.collection.html.j2" }
+  - { type: "collection.report", format: "json", file: "report.collection.json.j2", subFolder: "json" }
   metadata:
-  - { type: "movie", format: "yaml", file: "movie.metadata.yaml.j2" }
-  - { type: "movie", format: "html", file: "movie.metadata.html.j2" }
-  - { type: "movie", format: "json", file: "movie.metadata.json.j2", subFolder: "json" }
-  - { type: "show", format: "yaml", file: "show.metadata.yaml.j2" }
-  - { type: "show", format: "html", file: "show.metadata.html.j2" }
-  - { type: "show", format: "json", file: "show.metadata.json.j2", subFolder: "json" }
-  - { type: "music", format: "yaml", file: "music.metadata.yaml.j2" }
-  - { type: "music", format: "html", file: "music.metadata.html.j2" }
-  - { type: "music", format: "json", file: "music.metadata.json.j2", subFolder: "json" }
-  - { type: "report", format: "yaml", file: "report.metadata.yaml.j2" }
-  - { type: "report", format: "html", file: "report.metadata.html.j2" }
-  - { type: "report", format: "json", file: "report.metadata.json.j2", subFolder: "json" }
+  - { type: "metadata.movie", format: "yaml", file: "movie.metadata.yaml.j2" }
+  - { type: "metadata.movie", format: "html", file: "movie.metadata.html.j2" }
+  - { type: "metadata.movie", format: "json", file: "movie.metadata.json.j2", subFolder: "json" }
+  - { type: "metadata.show", format: "yaml", file: "show.metadata.yaml.j2" }
+  - { type: "metadata.show", format: "html", file: "show.metadata.html.j2" }
+  - { type: "metadata.show", format: "json", file: "show.metadata.json.j2", subFolder: "json" }
+  - { type: "metadata.music", format: "yaml", file: "music.metadata.yaml.j2" }
+  - { type: "metadata.music", format: "html", file: "music.metadata.html.j2" }
+  - { type: "metadata.music", format: "json", file: "music.metadata.json.j2", subFolder: "json" }
+  - { type: "metadata.report", format: "yaml", file: "report.metadata.yaml.j2" }
+  - { type: "metadata.report", format: "html", file: "report.metadata.html.j2" }
+  - { type: "metadata.report", format: "json", file: "report.metadata.json.j2", subFolder: "json" }
   overlay:
-  - { type: "movie", format: "yaml", file: "movie.overlay.yaml.j2" }
-  - { type: "movie", format: "html", file: "movie.overlay.html.j2" }
-  - { type: "movie", format: "json", file: "movie.overlay.json.j2", subFolder: "json" }
-  - { type: "show", format: "yaml", file: "show.overlay.yaml.j2" }
-  - { type: "show", format: "html", file: "show.overlay.html.j2" }
-  - { type: "show", format: "json", file: "show.overlay.json.j2", subFolder: "json" }
-  - { type: "music", format: "yaml", file: "music.overlay.yaml.j2" }
-  - { type: "music", format: "html", file: "music.overlay.html.j2" }
-  - { type: "music", format: "json", file: "music.overlay.json.j2", subFolder: "json" }
-  - { type: "report", format: "yaml", file: "report.overlay.yaml.j2" }
-  - { type: "report", format: "html", file: "report.overlay.html.j2" }
-  - { type: "report", format: "json", file: "report.overlay.json.j2", subFolder: "json" }
+  - { type: "overlay.movie", format: "yaml", file: "movie.overlay.yaml.j2" }
+  - { type: "overlay.movie", format: "html", file: "movie.overlay.html.j2" }
+  - { type: "overlay.movie", format: "json", file: "movie.overlay.json.j2", subFolder: "json" }
+  - { type: "overlay.show", format: "yaml", file: "show.overlay.yaml.j2" }
+  - { type: "overlay.show", format: "html", file: "show.overlay.html.j2" }
+  - { type: "overlay.show", format: "json", file: "show.overlay.json.j2", subFolder: "json" }
+  - { type: "overlay.music", format: "yaml", file: "music.overlay.yaml.j2" }
+  - { type: "overlay.music", format: "html", file: "music.overlay.html.j2" }
+  - { type: "overlay.music", format: "json", file: "music.overlay.json.j2", subFolder: "json" }
+  - { type: "overlay.report", format: "yaml", file: "report.overlay.yaml.j2" }
+  - { type: "overlay.report", format: "html", file: "report.overlay.html.j2" }
+  - { type: "overlay.report", format: "json", file: "report.overlay.json.j2", subFolder: "json" }
 output:
   path: "./data"
   pathFormat: "{{library.title}}"
@@ -74,7 +74,16 @@ output:
     collectionsReport: "{{library.title}} - Collection Report"
     metadataReport: "{{library.title}} - Metadata Report"
 generate:
+  types:
+  - collection.any
+  - metadata.any
+  - report.any
+  - overlay.any
+  formats:
+  - json
+  - yaml
+  - html
   enableJson: False
   enableYaml: True
   enableHtml: True
-  enableItemReport: True
+  

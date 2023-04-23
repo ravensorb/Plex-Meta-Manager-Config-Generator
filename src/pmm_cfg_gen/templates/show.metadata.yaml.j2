@@ -25,7 +25,8 @@ metadata:
         seasons:
         {%- for season in item.seasons %}
             {{ season.seasonNumber }}:
-                {% if not item.pmm.poster %}# {% endif %}url_poster: {{ item.pmm | getPMMSeason(season.seasonNumber, "poster") | default(settings.thePosterDatabase.dbAssetUrl, True) }}
+                {%- set pmmSeasonPoster = item.pmm | getPMMSeason(season.seasonNumber, "poster") %}
+                {% if not pmmSeasonPoster %}# {% endif %}url_poster: {{ pmmSeasonPoster | default(settings.thePosterDatabase.dbAssetUrl, True) }}
                 # IDs: {{ season.guids | map(attribute="id") | list | join(', ')}}
                 # {{ season | generateTpDbSearchUrl }}
         {%- endfor %}

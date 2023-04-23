@@ -29,37 +29,49 @@ class SettingsTemplateLibraryTypeEnum(Enum):
     MUSIC = "music"
     REPORT = "report"
     SHOW = "show"
+    COLLECTION_REPORT = "collection.report"
+    MOVIE_REPORT = "movie.report"
+    MUSIC_REPORT = "music.report"
 
 
 class SettingsGenerate:
     enableJson: bool
     enableYaml: bool
     enableHtml: bool
-    enableItemReport: bool
+    types: list[str]
+    formats: list[str]
 
-    def __init__(self, enableJson: bool, enableYaml: bool, enableHtml: bool, enableItemReport: bool) -> None:
+    def __init__(self, enableJson: bool, enableYaml: bool, enableHtml: bool, types: list[str], formats: list[str]) -> None:
         self.enableJson = enableJson
         self.enableYaml = enableYaml
         self.enableHtml = enableHtml
-        self.enableItemReport = enableItemReport
+        self.types = types
+        self.formats = formats
 
-    def isFormatEnabled(self, format: SettingsTemplateFileFormatEnum | str) -> bool:
-        if isinstance(format, SettingsTemplateFileFormatEnum):
-            format = format.value
+    def isFormatEnabled(self, formatValue: SettingsTemplateFileFormatEnum | str) -> bool:
+        if isinstance(formatValue, SettingsTemplateFileFormatEnum):
+            formatValue = formatValue.value
 
-        format = str(format).lower()
+        formatValue = str(formatValue).lower()
+
+        logging.getLogger("pmm_cfg_gen").debug(f"Checking if format '{formatValue}' is enabled (formats: {self.formats})")
+
+        return formatValue in self.formats
         
-        if format == "json":
-            return self.enableJson
-        elif format == "yaml":
-            return self.enableYaml
-        elif format == "html":
-            return self.enableHtml
-        elif format == "report":
-            return self.enableItemReport
+    def isTypeEnabled(self, typeValue: SettingsTemplateLibraryTypeEnum | str) -> bool:
+        if isinstance(typeValue, SettingsTemplateLibraryTypeEnum):
+            typeValue = typeValue.value
 
-        return False
+        typeValue = str(typeValue).lower()
 
+        logging.getLogger("pmm_cfg_gen").debug(f"Checking if type '{typeValue}' is enabled (types: {self.types})")
+
+        typeValueParts = typeValue.split(".")
+        if len(typeValueParts) > 1:
+            if f"{typeValueParts[0]}.any" in self.types:
+                return True
+
+        return typeValue in self.types
 
 class SettingsOutputFileNames:
     collections: str
@@ -161,15 +173,16 @@ class SettingsTemplateFile:
     def from_list_dict(cls, data: List[dict]):
         return [cls.from_dict(x) for x in data]
 
+
 class SettingsTemplateGroups:
     templatePath : str | None
-    libray: List[SettingsTemplateFile]
+    library: List[SettingsTemplateFile]
     collection: List[SettingsTemplateFile]
     metadata: List[SettingsTemplateFile]
     overlay: List[SettingsTemplateFile]
 
-    def __init__(self, libray: List[SettingsTemplateFile], collection: List[SettingsTemplateFile], metadata: List[SettingsTemplateFile], overlay: List[SettingsTemplateFile], templatePath : str | None) -> None:
-        self.libray = libray
+    def __init__(self, library: List[SettingsTemplateFile], collection: List[SettingsTemplateFile], metadata: List[SettingsTemplateFile], overlay: List[SettingsTemplateFile], templatePath : str | None) -> None:
+        self.library = library
         self.collection = collection
         self.metadata = metadata
         self.overlay = overlay
@@ -188,7 +201,7 @@ class SettingsTemplateGroups:
         result: List[SettingsTemplateFile] | None = None
 
         if name == "library":
-            return self.libray
+            return self.library
 
         if name == "collection":
             return self.collection
@@ -211,7 +224,13 @@ class SettingsTemplateGroups:
 
         #logging.getLogger("pmm_cfg_gen").debug("templateGroupList: {}".format(jsonpickle.dumps(templateGroupList, unpicklable=False)))
 
-        result = [x for x in templateGroupList if x.type == libraryType or x.type == "any"]
+        strGroupLibrary = f"{group}.{libraryType}".lower().strip()
+        strGroupAny = f"{group}.any".lower().strip()
+
+        #logging.getLogger("pmm_cfg_gen").debug("strGroupLibrary: '{}'".format(strGroupLibrary))
+        #logging.getLogger("pmm_cfg_gen").debug("strGroupAny: '{}'".format(strGroupAny))
+        
+        result = [x for x in templateGroupList if x.type.lower() == strGroupLibrary or x.type.lower() == strGroupAny]
 
         if result is not None and len(result) > 0:
             return result 
@@ -355,7 +374,7 @@ class SettingsManager:
             ),
             templates=SettingsTemplateGroups(
                 collection=SettingsTemplateFile.from_list_dict(self._config["templates"]["collection"].get(confuse.Optional(list))),  # type: ignore
-                libray=SettingsTemplateFile.from_list_dict(self._config["templates"]["libray"].get(confuse.Optional(list))),  # type: ignore
+                library=SettingsTemplateFile.from_list_dict(self._config["templates"]["library"].get(confuse.Optional(list))),  # type: ignore
                 metadata=SettingsTemplateFile.from_list_dict(self._config["templates"]["metadata"].get(confuse.Optional(list))),  # type: ignore
                 overlay=SettingsTemplateFile.from_list_dict(self._config["templates"]["overlay"].get(confuse.Optional(list))),  # type: ignore
                 templatePath=self._config["templates"]["templatePath"].get(confuse.Optional(list)),  # type: ignore
@@ -387,10 +406,11 @@ class SettingsManager:
                 )
             ),
             generate=SettingsGenerate(
+                types=self._config["generate"]["types"].get(confuse.Optional(list)),  # type: ignore
+                formats=self._config["generate"]["formats"].get(confuse.Optional(list)),  # type: ignore
                 enableHtml=self._config["generate"]["enableHtml"].get(confuse.Optional(False)),  # type: ignore
                 enableJson=self._config["generate"]["enableJson"].get(confuse.Optional(False)),  # type: ignore
                 enableYaml=self._config["generate"]["enableYaml"].get(confuse.Optional(True)),  # type: ignore
-                enableItemReport=self._config["generate"]["enableItemReport"].get(confuse.Optional(True)),  # type: ignore
             ),
             plexMetaManager=SettingsPlexMetaManager.from_dict(self._config["plexMetaManager"].get(confuse.Optional(dict))),  # type: ignore
         )

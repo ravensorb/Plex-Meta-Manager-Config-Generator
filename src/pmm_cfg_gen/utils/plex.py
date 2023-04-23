@@ -223,7 +223,9 @@ class PlexLibraryProcessor:
             )
         )
 
-        self._addCollectionToProcessedCache(item)
+        pmmItem = self.__plexMetaManagerCache[self.plexLibraryName].collectionItem_to_dict(item.title)
+        
+        self._addCollectionToProcessedCache(item, pmmItem)
 
         tplFiles = globalSettingsMgr.settings.templates.getTemplateByGroupAndLibraryType("collection", self.plexLibrary.type)
         if tplFiles is None:
@@ -239,7 +241,7 @@ class PlexLibraryProcessor:
 
         for tplFile in tplFiles:
             try:
-                if globalSettingsMgr.settings.generate.isFormatEnabled(tplFile.format):
+                if globalSettingsMgr.settings.generate.isFormatEnabled(tplFile.format) and globalSettingsMgr.settings.generate.isTypeEnabled(tplFile.type):
 
                     if tplFile.subFolder is not None:
                         fileName = Path(self.pathLibrary, "collections", tplFile.subFolder, "{}.{}".format(fileNameBase, tplFile.fileExtension))
@@ -328,9 +330,11 @@ class PlexLibraryProcessor:
                     )
                 )
 
-                self._addItemToProcessedCache(collection, item)
+                pmmItem = self.__plexMetaManagerCache[self.plexLibraryName].metadataItem_to_dict(item.title, item.year)
 
-                itemDict = { "metadata": item, "pmm": self.__plexMetaManagerCache[self.plexLibraryName].metadataItem_to_dict(item.title, item.year) }
+                self._addItemToProcessedCache(collection, item, pmmItem)
+
+                itemDict = { "metadata": item, "pmm": pmmItem }
                 
                 seasons = []
                 if "childCount" in item.__dict__:
@@ -347,7 +351,7 @@ class PlexLibraryProcessor:
 
             for tplFile in tplFiles:
                 try:
-                    if globalSettingsMgr.settings.generate.isFormatEnabled(tplFile.format):
+                    if globalSettingsMgr.settings.generate.isFormatEnabled(tplFile.format) and globalSettingsMgr.settings.generate.isTypeEnabled(tplFile.type):
                         
                         if tplFile.subFolder is not None:
                             fileName = Path(self.pathLibrary, "metadata", tplFile.subFolder, "{}.{}".format(fileNameBase, tplFile.fileExtension))
@@ -377,7 +381,7 @@ class PlexLibraryProcessor:
 
         return it is not None
 
-    def _addCollectionToProcessedCache(self, item):
+    def _addCollectionToProcessedCache(self, item, pmmItem):
         if self.plexLibraryName not in self.__collectionProcessedCache.keys():
             self.__collectionProcessedCache[self.plexLibraryName] = []
 
@@ -386,6 +390,7 @@ class PlexLibraryProcessor:
                 "title": item.title,
                 "searchUrl": generateTpDbSearchUrl(item),
                 "metadata": item,
+                "pmm": pmmItem if pmmItem is not None else {},
             }
 
             self.__collectionProcessedCache[self.plexLibraryName].append(tpdbEntry)
@@ -402,7 +407,7 @@ class PlexLibraryProcessor:
 
         return it is not None
 
-    def _addItemToProcessedCache(self, collection, item):
+    def _addItemToProcessedCache(self, collection, item, pmmItem):
         pi = PlexVideoHelper(item)
 
         if self.plexLibraryName not in self.__itemProcessedCache.keys():
@@ -415,12 +420,13 @@ class PlexLibraryProcessor:
                 "searchUrl": generateTpDbSearchUrl(item),
                 "ids": pi.guids,
                 "metadata": item,
+                "pmm": pmmItem if pmmItem is not None else {},
             }
 
             self.__itemProcessedCache[self.plexLibraryName].append(tpdbEntry)
 
     def _saveCollectionReport(self):
-        if not globalSettingsMgr.settings.generate.enableItemReport:
+        if not globalSettingsMgr.settings.generate.isTypeEnabled("report.any"):
             self._logger.debug("Skipping Saving Collection Report...")
             return
 
@@ -445,7 +451,7 @@ class PlexLibraryProcessor:
         
         for tplFile in tplFiles:
             try:
-                if globalSettingsMgr.settings.generate.isFormatEnabled(tplFile.format):
+                if globalSettingsMgr.settings.generate.isFormatEnabled(tplFile.format) and globalSettingsMgr.settings.generate.isTypeEnabled(tplFile.type):
                     
                     if tplFile.subFolder is not None:
                         fileName = Path(self.pathLibrary, "reports", tplFile.subFolder, "{}.{}".format(fileNameBase, tplFile.fileExtension))
@@ -477,7 +483,7 @@ class PlexLibraryProcessor:
                 self._logger.exception("Failed generating collection report: '{}'".format(tplFile.fileName))
 
     def _saveItemReport(self):
-        if not globalSettingsMgr.settings.generate.enableItemReport:
+        if not globalSettingsMgr.settings.generate.isTypeEnabled("report.any"):
             self._logger.debug("Skipping Saving Item Report...")
             return
 
@@ -502,7 +508,7 @@ class PlexLibraryProcessor:
 
         for tplFile in tplFiles:
             try:
-                if globalSettingsMgr.settings.generate.isFormatEnabled(tplFile.format):
+                if globalSettingsMgr.settings.generate.isFormatEnabled(tplFile.format) and globalSettingsMgr.settings.generate.isTypeEnabled(tplFile.type):
                     
                     if tplFile.subFolder is not None:
                         fileName = Path(self.pathLibrary, "reports", tplFile.subFolder, "{}.{}".format(fileNameBase, tplFile.fileExtension))
