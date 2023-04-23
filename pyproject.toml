@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pmm-cfg-gen"
-version = "0.2.3"
+version = "0.2.4"
 description = "A script to help automatically generate Plex Meta Manager configuration files for your libraries"
 license = "GPL-3.0-or-later"
 authors = ["Shawn Anderson <sanderson@eye-catcher.com>"]
