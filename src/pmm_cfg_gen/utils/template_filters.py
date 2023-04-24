@@ -12,7 +12,7 @@ from plexapi.library import LibrarySection
 from plexapi.collection import Collection
 from plexapi.video import Video, Movie, Show
 
-from pmm_cfg_gen.utils.settings_utils_v2 import globalSettingsMgr
+from pmm_cfg_gen.utils.settings_utils_v1 import globalSettingsMgr
 from pmm_cfg_gen.utils.plex_utils import PlexItemHelper, PlexVideoHelper, PlexCollectionHelper
 from pmm_cfg_gen.utils.tmdb_utils import TheMovieDatabaseHelper
 # from pmm_cfg_gen.utils.tvdb_utils import TheTvDatabaseHelper

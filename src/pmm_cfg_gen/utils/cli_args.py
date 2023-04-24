@@ -25,22 +25,31 @@ globalArgParser.add_argument(
     help="Root path to store generated files (default: ./data)"
 )
 globalArgParser.add_argument(
-    "--generate.enableJson",
-    action="store_true",
-    default=False,
-    help="Enabled generating json files for each item processed (default: %(default)s)",
+    "--theMovieDatabase.apiKey",
+    help="The Movie Database API Key"
 )
+globalArgParser.add_argument(
+    "--thePosterDatabase.enablePro",
+    action="store_true",
+    help="Enable Pro features for The Poster Database (requires you to be able to login to the site)"
+)
+
+# Advanced Arguments
 globalArgParser.add_argument(
     "--generate.types",
     nargs="*",
+    choices=["library.any", "collection.any", "collection.movie", "collection.show", "collection.music", "collection.report", "metadata.any", "metadata.movie", "metadata.show", "metadata.music", "metadata.report", "report.any", "overlay.any", "overlay.movie", "overlay.show", "overlay.music", "overlay.report"],
     #default=["collection.any", "metadata.any", "report.any", "overlay.any"],
-    help="Comma delimited list of item types to generate (default: %(default)s)",
+    #help="Comma delimited list of item types to generate (default: %(default)s)",
+    help=argparse.SUPPRESS
 )
 globalArgParser.add_argument(
     "--generate.formats",
     nargs="*",
+    choices=["json", "yaml", "html"],
     #default=["json", "yaml", "html"],
-    help="Comma delimited list of formats to generate (default: %(default)s)",
+    #help="Comma delimited list of formats to generate (default: %(default)s)",
+    help=argparse.SUPPRESS
 )
 
 globalArgParser.add_argument(

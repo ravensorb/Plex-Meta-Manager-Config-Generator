@@ -16,7 +16,7 @@ from plexapi.collection import Collection
 from plexapi.video import Video
 from plexapi.server import PlexServer
 
-from pmm_cfg_gen.utils.settings_utils_v2 import globalSettingsMgr, SettingsTemplateLibraryTypeEnum, SettingsTemplateFileFormatEnum
+from pmm_cfg_gen.utils.settings_utils_v1 import globalSettingsMgr, SettingsTemplateLibraryTypeEnum, SettingsTemplateFileFormatEnum
 from pmm_cfg_gen.utils.file_utils import formatLibraryItemPath
 from pmm_cfg_gen.utils.plex_stats import PlexStats
 from pmm_cfg_gen.utils.plex_utils import PlexItemHelper, PlexVideoHelper, PlexCollectionHelper
@@ -121,6 +121,7 @@ class PlexLibraryProcessor:
         self.pathLibrary = formatLibraryItemPath(
             globalSettingsMgr.settings.output, library=self.plexLibrary
         )
+        
         self.pathLibrary.mkdir(parents=True, exist_ok=True)
 
         self._logger.debug("Library Path: '{}'".format(self.pathLibrary))
@@ -144,10 +145,12 @@ class PlexLibraryProcessor:
             self._logger.debug("Checking for Plex Meta Manager Cache enablement for this library")
             pmm = globalSettingsMgr.settings.plexMetaManager.getFolderByLibraryName(self.plexLibraryName)
             if pmm is not None:
+                self._logger.info("-" * 50)
                 self._logger.info("Loading Plex Meta Manager File Cache")
                 self._logger.debug("Plex Meta Manager Path: {}".format(pmm.path))
                 self.__plexMetaManagerCache[libraryName].processFolder(pmm.path) 
-
+                self._logger.info("-" * 50)
+                
         return self.plexLibrary
 
     def _processLibrary(self, libraryName: str):
@@ -193,8 +196,12 @@ class PlexLibraryProcessor:
         self.__stats.timerLibraries[libraryName].stop()
 
         self.__stats.countsLibraries[libraryName].calcTotals()
+
+        self._logger.info("-" * 50)        
+        self._sortCache()
         self._saveCollectionReport()
         self._saveItemReport()
+        #self._saveReport()
 
     def _processCollection(self, itemTitle: str, item):
         self.__stats.countsLibraries[self.plexLibraryName].collections.processed += 1
@@ -250,7 +257,11 @@ class PlexLibraryProcessor:
 
                     if not os.path.exists(fileName):
                         self.templateManager.renderAndSave(
-                            tplFile.fileName, fileName, tplArgs={"item": item, "pmm": self.__plexMetaManagerCache[self.plexLibraryName].collectionItem_to_dict(item.title) } 
+                            tplFile.fileName, fileName, tplArgs={
+                                "library": jsonpickle.dumps(self.plexLibrary, unpicklable=False),
+                                "item": item, 
+                                "pmm": self.__plexMetaManagerCache[self.plexLibraryName].collectionItem_to_dict(item.title) 
+                            } 
                         )
                     else:
                         self._logger.warn("  Collection File Name '{}' Exists. Skipping...".format(fileNameBase))
@@ -360,7 +371,10 @@ class PlexLibraryProcessor:
 
                         if not os.path.exists(fileName):
                             self.templateManager.renderAndSave(
-                                tplFile.fileName, fileName, tplArgs={"items": itemsWithExtras } 
+                                tplFile.fileName, fileName, tplArgs={
+                                    "library": jsonpickle.dumps(self.plexLibrary, unpicklable=False),
+                                    "items": itemsWithExtras 
+                                } 
                             )
                         else:
                             self._logger.warn("  Metadata File Name '{}' Exists. Skipping...".format(fileNameBase))
@@ -425,6 +439,16 @@ class PlexLibraryProcessor:
 
             self.__itemProcessedCache[self.plexLibraryName].append(tpdbEntry)
 
+    def _sortCache(self):
+        self.__collectionProcessedCache[self.plexLibraryName] = sorted(
+            self.__collectionProcessedCache[self.plexLibraryName],
+            key=lambda x: x["title"],
+        )
+        
+        self.__itemProcessedCache[self.plexLibraryName] = sorted(
+            self.__itemProcessedCache[self.plexLibraryName], key=lambda x: "{}:{}".format(x["collection"], x["title"])
+        )
+
     def _saveCollectionReport(self):
         if not globalSettingsMgr.settings.generate.isTypeEnabled("report.any"):
             self._logger.debug("Skipping Saving Collection Report...")
@@ -442,11 +466,6 @@ class PlexLibraryProcessor:
             "Template Files for Report Type '{}': {}".format(self.plexLibrary.type, jsonpickle.dumps(tplFiles, unpicklable=False))
         )
 
-        self.__collectionProcessedCache[self.plexLibraryName] = sorted(
-            self.__collectionProcessedCache[self.plexLibraryName],
-            key=lambda x: x["title"],
-        )
-
         fileNameBase = PlexItemHelper.formatString(globalSettingsMgr.settings.output.fileNameFormat.collectionsReport, library=self.plexLibrary, collection=None, item=None)
         
         for tplFile in tplFiles:
@@ -461,6 +480,7 @@ class PlexLibraryProcessor:
                     if not os.path.exists(fileName):
                         self.templateManager.renderAndSave(
                             tplFile.fileName, fileName, tplArgs={
+                                                                "library": jsonpickle.dumps(self.plexLibrary, unpicklable=False),
                                                                 "items": self.__collectionProcessedCache[self.plexLibraryName],
                                                                 "stats": json.loads(
                                                                     str(
@@ -499,11 +519,6 @@ class PlexLibraryProcessor:
             "Template Files for Report Type '{}': {}".format(self.plexLibrary.type, jsonpickle.dumps(tplFiles, unpicklable=False))
         )
 
-
-        self.__itemProcessedCache[self.plexLibraryName] = sorted(
-            self.__itemProcessedCache[self.plexLibraryName], key=lambda x: "{}:{}".format(x["collection"], x["title"])
-        )
-
         fileNameBase = PlexItemHelper.formatString(globalSettingsMgr.settings.output.fileNameFormat.metadataReport, library=self.plexLibrary, collection=None, item=None)
 
         for tplFile in tplFiles:
@@ -518,6 +533,7 @@ class PlexLibraryProcessor:
                     if not os.path.exists(fileName):
                         self.templateManager.renderAndSave(
                             tplFile.fileName, fileName, tplArgs={
+                                                                "library": jsonpickle.dumps(self.plexLibrary, unpicklable=False),
                                                                 "items": self.__itemProcessedCache[self.plexLibraryName],
                                                                 "stats": json.loads(
                                                                     str(
@@ -538,6 +554,60 @@ class PlexLibraryProcessor:
                     self._logger.debug("  Generating format '{}' for Report is not enabled. Skipping...".format(tplFile.format))
             except:
                 self._logger.exception("Failed generating item report: '{}'".format(tplFile.fileName))
+
+    def _saveReport(self):
+        if not globalSettingsMgr.settings.generate.isTypeEnabled("report.any"):
+            self._logger.debug("Skipping Saving Report...")
+            return
+
+        self._logger.info("Saving Report...")
+
+        tplFiles = globalSettingsMgr.settings.templates.getTemplateByGroupAndLibraryType("report", SettingsTemplateLibraryTypeEnum.REPORT)
+        if tplFiles is None:
+            self._logger.warn("No Report Templates defined")
+
+            return
+                    
+        self._logger.debug(
+            "Template Files for Report: {}".format(jsonpickle.dumps(tplFiles, unpicklable=False))
+        )
+
+        fileNameBase = PlexItemHelper.formatString(globalSettingsMgr.settings.output.fileNameFormat.report, library=self.plexLibrary, collection=None, item=None)
+
+        for tplFile in tplFiles:
+            try:
+                if globalSettingsMgr.settings.generate.isFormatEnabled(tplFile.format) and globalSettingsMgr.settings.generate.isTypeEnabled(tplFile.type):
+                    
+                    if tplFile.subFolder is not None:
+                        fileName = Path(self.pathLibrary, "reports", tplFile.subFolder, "{}.{}".format(fileNameBase, tplFile.fileExtension))
+                    else: 
+                        fileName = Path(self.pathLibrary, "reports", "{}.{}".format(fileNameBase, tplFile.fileExtension))
+
+                    if not os.path.exists(fileName):
+                        self.templateManager.renderAndSave(
+                            tplFile.fileName, fileName, tplArgs={
+                                                                "library": jsonpickle.dumps(self.plexLibrary, unpicklable=False),
+                                                                "collections": self.__collectionProcessedCache[self.plexLibraryName],
+                                                                "items": self.__itemProcessedCache[self.plexLibraryName],
+                                                                "stats": json.loads(
+                                                                    str(
+                                                                        jsonpickle.dumps(
+                                                                            self.__stats.countsLibraries[self.plexLibraryName],
+                                                                            unpicklable=False,
+                                                                        )
+                                                                    )
+                                                                ),
+                                                                "processingTime": self.__stats.timerLibraries[
+                                                                    self.plexLibraryName
+                                                                ].to_dict(),                        
+                                                            }
+                        )
+                    else:
+                        self._logger.warn("  Report File Name '{}' Exists. Skipping...".format(fileNameBase))
+                else:
+                    self._logger.debug("  Generating format '{}' for Report is not enabled. Skipping...".format(tplFile.format))
+            except:
+                self._logger.exception("Failed generating report: '{}'".format(tplFile.fileName))
 
     def _displayHeader(self):
         self._logger.info("-" * 50)

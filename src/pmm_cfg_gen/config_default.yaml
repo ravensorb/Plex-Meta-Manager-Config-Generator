@@ -1,3 +1,4 @@
+version: 1.0.0
 plex:
   serverUrl: ${PLEX_SERVER:-https://plex.ravenwolf.org:32400}
   token: ${PLEX_TOKEN}
@@ -65,6 +66,10 @@ templates:
   - { type: "overlay.report", format: "yaml", file: "report.overlay.yaml.j2" }
   - { type: "overlay.report", format: "html", file: "report.overlay.html.j2" }
   - { type: "overlay.report", format: "json", file: "report.overlay.json.j2", subFolder: "json" }
+  # report:
+  # - { type: "report.any", format: "yaml", file: "report.yaml.j2" }
+  # - { type: "report.any", format: "json", file: "report.json.j2" }
+  # - { type: "report.any", format: "html", file: "report.html.j2" }
 output:
   path: "./data"
   pathFormat: "{{library.title}}"
@@ -73,17 +78,24 @@ output:
     metadata: "{{item.title}} ({{item.year}}) [{{item.editionTitle}}]"
     collectionsReport: "{{library.title}} - Collection Report"
     metadataReport: "{{library.title}} - Metadata Report"
+    report: "{{library.title}} - Report"
 generate:
   types:
-  - collection.any
-  - metadata.any
+  - library.any
+  - collection.movie
+  # - collection.music
+  - collection.show
+  - collection.report
+  - metadata.movie
+  # - metadata.music
+  - metadata.show
+  - metadata.report
+  # - overlay.movie
+  # - overlay.music
+  # - overlay.show
   - report.any
-  - overlay.any
   formats:
-  - json
   - yaml
   - html
-  enableJson: False
-  enableYaml: True
-  enableHtml: True
+  # - json
   

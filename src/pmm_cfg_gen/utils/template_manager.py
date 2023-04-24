@@ -8,7 +8,7 @@ import jinja2
 import jinja2.exceptions
 import jsonpickle
 
-from pmm_cfg_gen.utils.settings_utils_v2 import globalSettingsMgr
+from pmm_cfg_gen.utils.settings_utils_v1 import globalSettingsMgr
 from pmm_cfg_gen.utils.file_utils import writeFile
 from pmm_cfg_gen.utils.plex_utils import PlexItemHelper, PlexVideoHelper, PlexCollectionHelper
 import pmm_cfg_gen.utils.template_filters as template_filters

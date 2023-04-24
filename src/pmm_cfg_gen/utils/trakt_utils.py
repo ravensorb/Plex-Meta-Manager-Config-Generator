@@ -5,7 +5,7 @@
 import logging
 import jsonpickle
 
-from pmm_cfg_gen.utils.settings_utils_v2 import globalSettingsMgr
+from pmm_cfg_gen.utils.settings_utils_v1 import globalSettingsMgr
 
 ###################################################################################################
 

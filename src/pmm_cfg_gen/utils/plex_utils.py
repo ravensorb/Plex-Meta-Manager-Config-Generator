@@ -11,7 +11,7 @@ from plexapi.video import Video, Movie, Show
 from plexapi.server import PlexServer
 import re
 
-from pmm_cfg_gen.utils.settings_utils_v2 import globalSettingsMgr
+from pmm_cfg_gen.utils.settings_utils_v1 import globalSettingsMgr
 
 ###################################################################################################
 

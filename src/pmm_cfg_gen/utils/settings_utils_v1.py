@@ -2,10 +2,12 @@
 
 #######################################################################
 
+from typing import List
+from enum import Enum
+
 import logging
 import os
 from pathlib import Path
-from typing import List
 
 import confuse
 import importlib_resources
@@ -13,38 +15,85 @@ import jsonpickle
 from dotenv import load_dotenv
 from expandvars import expandvars
 
-
 #######################################################################
+
+class SettingsTemplateFileFormatEnum(Enum):
+    HTML = "html"
+    JSON = "json"
+    YAML = "yaml"
+
+
+class SettingsTemplateLibraryTypeEnum(Enum):
+    ANY = "any"
+    MOVIE = "movie"
+    MUSIC = "music"
+    REPORT = "report"
+    SHOW = "show"
+    COLLECTION_REPORT = "collection.report"
+    MOVIE_REPORT = "movie.report"
+    MUSIC_REPORT = "music.report"
+
+
+class SettingsGenerate:
+    types: list[str]
+    formats: list[str]
+
+    def __init__(self, types: list[str], formats: list[str]) -> None:
+        self.types = types
+        self.formats = formats
+
+    def isFormatEnabled(self, formatValue: SettingsTemplateFileFormatEnum | str) -> bool:
+        if isinstance(formatValue, SettingsTemplateFileFormatEnum):
+            formatValue = formatValue.value
+
+        formatValue = str(formatValue).lower()
+
+        logging.getLogger("pmm_cfg_gen").debug(f"Checking if format '{formatValue}' is enabled (formats: {self.formats})")
+
+        return formatValue in self.formats
+        
+    def isTypeEnabled(self, typeValue: SettingsTemplateLibraryTypeEnum | str) -> bool:
+        if isinstance(typeValue, SettingsTemplateLibraryTypeEnum):
+            typeValue = typeValue.value
+
+        typeValue = str(typeValue).lower()
+
+        logging.getLogger("pmm_cfg_gen").debug(f"Checking if type '{typeValue}' is enabled (types: {self.types})")
+
+        typeValueParts = typeValue.split(".")
+        if len(typeValueParts) > 1:
+            if f"{typeValueParts[0]}.any" in self.types:
+                return True
+
+        return typeValue in self.types
+
 class SettingsOutputFileNames:
     collections: str
     metadata: str
     collectionsReport: str
-    metadataReport : str
+    metadataReport: str
+    report: str
 
-    def __init__(self, collections: str, metadata: str, collectionsReport: str, metadataReport: str) -> None:
+    def __init__(self, collections: str, metadata: str, collectionsReport: str, metadataReport: str, report: str) -> None:
         self.collections = collections
         self.metadata = metadata
         self.collectionsReport = collectionsReport
         self.metadataReport = metadataReport
+        self.report = report
 
 
 class SettingsOutput:
     path: str
     pathFormat: str
-    fileNameFormat = SettingsOutputFileNames
+    fileNameFormat: SettingsOutputFileNames
 
-    def __init__(
-        self,
-        path: str,
-        pathFormat: str,
-        fileNameFormat: SettingsOutputFileNames
-    ) -> None:
+    def __init__(self, path: str, pathFormat: str, fileNameFormat: SettingsOutputFileNames) -> None:
         self.path = path
         self.pathFormat = pathFormat
         self.fileNameFormat = fileNameFormat
 
 
-class SettingsPlex:
+class SettingsPlexServer:
     serverUrl: str
     token: str
     libraries: List[str]
@@ -55,94 +104,85 @@ class SettingsPlex:
         self.libraries = libraries
 
 
-class SettingsPlexMetaManager:
-    cacheExistingFiles : bool
-    folders: list[dict]
+class SettingsPlexMetaManagerFolder:
+    library: str
+    path: str
 
-    def __init__(self, cacheExistingFiles: bool, folders: list[dict]) -> None:        
-        self.cacheExistingFiles = cacheExistingFiles
-        self.folders = folders
-
-    def getFolderByLibraryName(self, libraryName: str) -> dict | None:
-        result = next((x for x in self.folders if x["library"] == libraryName), None)
-
-        return result
-
-    
-class SettingsTemplateFiles:
-    yamlFileName: str | None
-    jsonFileName: str | None
-    htmlFileName: str | None
-
-    def __init__(
-        self,
-        yamlFileName: str | None,
-        jsonFileName: str | None,
-        htmlFileName: str | None = None,
-    ) -> None:
-        self.yamlFileName = yamlFileName
-        self.jsonFileName = jsonFileName
-        self.htmlFileName = htmlFileName
-
-
-class SettingsTemplatePlexItemFileGroup:
-    movies: SettingsTemplateFiles | None
-    shows: SettingsTemplateFiles | None
-    library: SettingsTemplateFiles | None
-
-    def __init__(
-        self,
-        movies: SettingsTemplateFiles | None,
-        shows: SettingsTemplateFiles | None,
-        library: SettingsTemplateFiles | None = None,
-    ) -> None:
-        self.movies = movies
-        self.shows = shows
+    def __init__(self, library: str, path: str) -> None:
         self.library = library
+        self.path = path
 
-    def getByItemType(self, itemType: str) -> SettingsTemplateFiles:
-        if itemType.lower() == "movie" and self.movies is not None:
-            return self.movies
-        if itemType.lower() == "show" and self.shows is not None:
-            return self.shows
-        if itemType.lower() == "library" and self.library is not None:
-            return self.library
-
-        raise BaseException(
-            "Unknown item type or template not defined: {}".format(itemType)
+    @classmethod
+    def from_dict(cls, data: dict):
+        return cls(
+            data["library"],
+            data["path"]
         )
 
 
-class SettingsTemplateReportFileGroup:
-    collection: SettingsTemplateFiles | None
-    metadata: SettingsTemplateFiles | None
+class SettingsPlexMetaManager:
+    cacheExistingFiles: bool
+    folders: List[SettingsPlexMetaManagerFolder]
 
-    def __init__(
-        self,
-        collection: SettingsTemplateFiles | None,
-        metadata: SettingsTemplateFiles | None,
-    ) -> None:
+    def __init__(self, cacheExistingFiles: bool, folders: List[SettingsPlexMetaManagerFolder]) -> None:
+        self.cacheExistingFiles = cacheExistingFiles
+        self.folders = folders
+
+    def getFolderByLibraryName(self, libraryName: str) -> SettingsPlexMetaManagerFolder | None:
+        result = next((x for x in self.folders if x.library.strip() == libraryName.strip()), None)
+
+        return result
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        return cls(
+            data["cacheExistingFiles"],
+            [SettingsPlexMetaManagerFolder.from_dict(x) for x in data["folders"]]
+        )
+
+
+class SettingsTemplateFile:
+    type: str
+    format: str
+    fileName: str
+    fileExtension: str
+    subFolder: str | None
+
+    def __init__(self, type: str, format: str, fileName: str, fileExtension : str | None, subFolder : str | None) -> None:
+        self.type = type
+        self.format = format
+        self.fileName = fileName
+        self.fileExtension = fileExtension if fileExtension is not None else str(format).lower()
+        self.subFolder = subFolder
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        return cls(
+            data["type"],
+            data["format"],
+            data["file"],
+            data["fileExtension"] if "fileExtension" in data else None,
+            data["subFolder"] if "subFolder" in data else None,
+        )
+
+    @classmethod
+    def from_list_dict(cls, data: List[dict]):
+        return [cls.from_dict(x) for x in data]
+
+
+class SettingsTemplateGroups:
+    templatePath : str | None
+    library: List[SettingsTemplateFile]
+    collection: List[SettingsTemplateFile]
+    metadata: List[SettingsTemplateFile]
+    overlay: List[SettingsTemplateFile]
+
+    def __init__(self, library: List[SettingsTemplateFile], collection: List[SettingsTemplateFile], metadata: List[SettingsTemplateFile], overlay: List[SettingsTemplateFile], templatePath : str | None) -> None:
+        self.library = library
         self.collection = collection
         self.metadata = metadata
-
-
-class SettingsTemplates:
-    templatePath: str | None
-    collections: SettingsTemplatePlexItemFileGroup
-    metadata: SettingsTemplatePlexItemFileGroup
-    reports: SettingsTemplateReportFileGroup
-
-    def __init__(
-        self,
-        collections: SettingsTemplatePlexItemFileGroup,
-        metadata: SettingsTemplatePlexItemFileGroup,
-        reports: SettingsTemplateReportFileGroup,
-        templatePath: str | None = None,
-    ) -> None:
+        self.overlay = overlay
         self.templatePath = templatePath
-        self.collections = collections
-        self.metadata = metadata
-        self.reports = reports
 
     def getTemplateRootPath(self) -> Path:
         if self.templatePath is None or self.templatePath == "pmm_cfg_gen.tempaltes":
@@ -152,39 +192,50 @@ class SettingsTemplates:
 
         return Path(self.templatePath).resolve()
 
+    def getTemplateByGroupName(self, name: str) -> List[SettingsTemplateFile]:
 
-class SettingsThePosterDatabase:
-    enablePro: bool
-    searchUrlPro: str
-    searchUrl: str
-    dbAssetUrl: str
+        result: List[SettingsTemplateFile] | None = None
 
-    def __init__(
-        self, searchUrl: str, searchUrlPro: str, dbAssetUrl: str, enablePro: bool
-    ) -> None:
-        self.searchUrl = searchUrl
-        self.searchUrlPro = searchUrlPro
-        self.dbAssetUrl = dbAssetUrl
-        self.enablePro = enablePro
+        if name == "library":
+            return self.library
 
+        if name == "collection":
+            return self.collection
 
-class SettingsTheMovieDatabase:
-    apiKey: str | None
-    language: str | None
-    region: str | None
-    limitCollectionResults: int | None
+        if name == "metadata":
+            return self.metadata
 
-    def __init__(
-        self,
-        apiKey: str | None,
-        language: str | None,
-        region: str | None,
-        limitCollectionResults: int | None,
-    ) -> None:
-        self.apiKey = apiKey
-        self.language = language
-        self.region = region
-        self.limitCollectionResults = limitCollectionResults
+        if name == "overlay":
+            return self.overlay
+        
+        raise ValueError("Unknown template group name: '{}".format(name))
+
+    def getTemplateByGroupAndLibraryType(
+        self, group: str, libraryType: SettingsTemplateLibraryTypeEnum | str
+    ) -> List[SettingsTemplateFile] | None:
+        if isinstance(libraryType, SettingsTemplateLibraryTypeEnum):
+            libraryType = str(libraryType.value)
+
+        templateGroupList = self.getTemplateByGroupName(group)
+
+        #logging.getLogger("pmm_cfg_gen").debug("templateGroupList: {}".format(jsonpickle.dumps(templateGroupList, unpicklable=False)))
+
+        strGroupLibrary = f"{group}.{libraryType}".lower().strip()
+        strGroupAny = f"{group}.any".lower().strip()
+
+        #logging.getLogger("pmm_cfg_gen").debug("strGroupLibrary: '{}'".format(strGroupLibrary))
+        #logging.getLogger("pmm_cfg_gen").debug("strGroupAny: '{}'".format(strGroupAny))
+        
+        result = [x for x in templateGroupList if x.type.lower() == strGroupLibrary or x.type.lower() == strGroupAny]
+
+        if result is not None and len(result) > 0:
+            return result 
+        
+        raise ValueError(
+            "No template found for group '{}' and library type '{}'".format(
+                group, libraryType
+            )
+        )
 
 
 class SettingsTheTvDatabase:
@@ -196,58 +247,55 @@ class SettingsTheTvDatabase:
         self.pin = pin
 
 
-class SettingsGenerate:
-    enableJson: bool
-    enableYaml: bool
-    enableHtml: bool
-    enableItemReport: bool
+class SettingsTheMovieDatabase:
+    limitCollectionResults: int
+    apiKey: str
+    language: str
+    region: str
 
-    def __init__(
-        self,
-        enableJson: bool,
-        enableYaml: bool,
-        enableHtml: bool,
-        enableItemReport: bool,
-    ) -> None:
-        self.enableJson = enableJson
-        self.enableYaml = enableYaml
-        self.enableHtml = enableHtml
-        self.enableItemReport = enableItemReport
+    def __init__(self, limitCollectionResults: int, apiKey: str, language: str, region: str) -> None:
+        self.limitCollectionResults = limitCollectionResults
+        self.apiKey = apiKey
+        self.language = language
+        self.region = region
+
+
+class SettingsThePosterDatabase:
+    enablePro: bool
+    searchUrlPro: str
+    searchUrl: str
+    dbAssetUrl: str
+
+    def __init__(self, enablePro: bool, searchUrlPro: str, searchUrl: str, dbAssetUrl: str) -> None:
+        self.enablePro = enablePro
+        self.searchUrlPro = searchUrlPro
+        self.searchUrl = searchUrl
+        self.dbAssetUrl = dbAssetUrl
 
 
 class Settings:
-    plex: SettingsPlex
+    version: str
+    plex: SettingsPlexServer
+    plexMetaManager: SettingsPlexMetaManager
     thePosterDatabase: SettingsThePosterDatabase
     theMovieDatabase: SettingsTheMovieDatabase
     theTvDatabase: SettingsTheTvDatabase
-    templates: SettingsTemplates
+    templates: SettingsTemplateGroups
     output: SettingsOutput
     generate: SettingsGenerate
-    plexMetaManager: SettingsPlexMetaManager
 
-    def __init__(
-        self,
-        plex: SettingsPlex,
-        thePosterDatabase: SettingsThePosterDatabase,
-        theMovieDatabase: SettingsTheMovieDatabase,
-        theTvDatabase: SettingsTheTvDatabase,
-        templates: SettingsTemplates,
-        output: SettingsOutput,
-        generate: SettingsGenerate,
-        plexMetaManager: SettingsPlexMetaManager
-    ) -> None:
+    def __init__(self, version: str, plex: SettingsPlexServer, plexMetaManager: SettingsPlexMetaManager, thePosterDatabase: SettingsThePosterDatabase, theMovieDatabase: SettingsTheMovieDatabase,  theTvDatabase : SettingsTheTvDatabase, templates: SettingsTemplateGroups, output: SettingsOutput, generate: SettingsGenerate) -> None:
+        self.version = version
         self.plex = plex
+        self.plexMetaManager = plexMetaManager
         self.thePosterDatabase = thePosterDatabase
         self.theMovieDatabase = theMovieDatabase
         self.theTvDatabase = theTvDatabase
         self.templates = templates
         self.output = output
         self.generate = generate
-        self.plexMetaManager = plexMetaManager
-
 
 #######################################################################
-
 
 class SettingsManager:
     _config: confuse.Configuration
@@ -291,7 +339,8 @@ class SettingsManager:
         )
 
         self.settings = Settings(
-            plex=SettingsPlex(
+            version=self._config["version"].get(confuse.Optional(str)),  # type: ignore
+            plex=SettingsPlexServer(
                 serverUrl=expandvars(self._config["plex"]["serverUrl"].as_str()),
                 token=expandvars(self._config["plex"]["token"].as_str()),
                 libraries=self._config["plex"]["libraries"].get(confuse.Optional(list)),  # type: ignore
@@ -322,107 +371,12 @@ class SettingsManager:
                 apiKey=self._config["theTvDatabase"]["apiKey"].get(confuse.Optional(None)),  # type: ignore
                 pin=self._config["theTvDatabase"]["pin"].get(confuse.Optional(None)),  # type: ignore
             ),
-            templates=SettingsTemplates(
-                collections=SettingsTemplatePlexItemFileGroup(
-                    movies=SettingsTemplateFiles(
-                        yamlFileName=str(
-                            self._config["templates"]["collections"]["movies"][
-                                "yamlFileName"
-                            ].as_str()
-                        ),
-                        jsonFileName=str(
-                            self._config["templates"]["collections"]["movies"][
-                                "jsonFileName"
-                            ].as_str()
-                        ),
-                    ),
-                    shows=SettingsTemplateFiles(
-                        yamlFileName=str(
-                            self._config["templates"]["collections"]["shows"][
-                                "yamlFileName"
-                            ].as_str()
-                        ),
-                        jsonFileName=str(
-                            self._config["templates"]["collections"]["shows"][
-                                "jsonFileName"
-                            ].as_str()
-                        ),
-                    ),
-                ),
-                metadata=SettingsTemplatePlexItemFileGroup(
-                    movies=SettingsTemplateFiles(
-                        yamlFileName=str(
-                            self._config["templates"]["metadata"]["movies"][
-                                "yamlFileName"
-                            ].as_str()
-                        ),
-                        jsonFileName=str(
-                            self._config["templates"]["metadata"]["movies"][
-                                "jsonFileName"
-                            ].as_str()
-                        ),
-                    ),
-                    shows=SettingsTemplateFiles(
-                        yamlFileName=str(
-                            self._config["templates"]["metadata"]["shows"][
-                                "yamlFileName"
-                            ].as_str()
-                        ),
-                        jsonFileName=str(
-                            self._config["templates"]["metadata"]["shows"][
-                                "jsonFileName"
-                            ].as_str()
-                        ),
-                    ),
-                    library=SettingsTemplateFiles(
-                        yamlFileName=str(
-                            self._config["templates"]["metadata"]["library"][
-                                "yamlFileName"
-                            ].get(confuse.Optional(None))
-                        ),
-                        jsonFileName=str(
-                            self._config["templates"]["metadata"]["library"][
-                                "jsonFileName"
-                            ].get(confuse.Optional(None))
-                        ),
-                    ),
-                ),
-                reports=SettingsTemplateReportFileGroup(
-                    collection=SettingsTemplateFiles(
-                        yamlFileName=str(
-                            self._config["templates"]["reports"]["collection"][
-                                "yamlFileName"
-                            ].get(confuse.Optional(None))
-                        ),
-                        jsonFileName=str(
-                            self._config["templates"]["reports"]["collection"][
-                                "jsonFileName"
-                            ].get(confuse.Optional(None))
-                        ),
-                        htmlFileName=str(
-                            self._config["templates"]["reports"]["collection"][
-                                "htmlFileName"
-                            ].get(confuse.Optional(None))
-                        ),
-                    ),
-                    metadata=SettingsTemplateFiles(
-                        yamlFileName=str(
-                            self._config["templates"]["reports"]["metadata"][
-                                "yamlFileName"
-                            ].get(confuse.Optional(None))
-                        ),
-                        jsonFileName=str(
-                            self._config["templates"]["reports"]["metadata"][
-                                "jsonFileName"
-                            ].get(confuse.Optional(None))
-                        ),
-                        htmlFileName=str(
-                            self._config["templates"]["reports"]["metadata"][
-                                "htmlFileName"
-                            ].get(confuse.Optional(None))
-                        ),
-                    ),
-                ),
+            templates=SettingsTemplateGroups(
+                collection=SettingsTemplateFile.from_list_dict(self._config["templates"]["collection"].get(confuse.Optional(list))),  # type: ignore
+                library=SettingsTemplateFile.from_list_dict(self._config["templates"]["library"].get(confuse.Optional(list))),  # type: ignore
+                metadata=SettingsTemplateFile.from_list_dict(self._config["templates"]["metadata"].get(confuse.Optional(list))),  # type: ignore
+                overlay=SettingsTemplateFile.from_list_dict(self._config["templates"]["overlay"].get(confuse.Optional(list))),  # type: ignore
+                templatePath=self._config["templates"]["templatePath"].get(confuse.Optional(list)),  # type: ignore
             ),
             output=SettingsOutput(
                 path=str(self._config["output"]["path"].as_str()),
@@ -448,18 +402,14 @@ class SettingsManager:
                             confuse.Optional("{{library.title}} - Items")
                         )
                     ),
+                    report=str(self._config["output"]["fileNameFormat"]["report"].get(confuse.Optional("{{library.title}} -Report"))),
                 )
             ),
             generate=SettingsGenerate(
-                enableHtml=self._config["generate"]["enableHtml"].get(confuse.Optional(False)),  # type: ignore
-                enableJson=self._config["generate"]["enableJson"].get(confuse.Optional(False)),  # type: ignore
-                enableYaml=self._config["generate"]["enableYaml"].get(confuse.Optional(True)),  # type: ignore
-                enableItemReport=self._config["generate"]["enableItemReport"].get(confuse.Optional(True)),  # type: ignore
+                types=self._config["generate"]["types"].get(confuse.Optional(list)),  # type: ignore
+                formats=self._config["generate"]["formats"].get(confuse.Optional(list)),  # type: ignore
             ),
-            plexMetaManager=SettingsPlexMetaManager(
-                cacheExistingFiles=self._config["plexMetaManager"]["cacheExistingFiles"].get(confuse.Optional(False)),  # type: ignore
-                folders=self._config["plexMetaManager"]["folders"].get(confuse.Optional(None)),  # type: ignore
-            )
+            plexMetaManager=SettingsPlexMetaManager.from_dict(self._config["plexMetaManager"].get(confuse.Optional(dict))),  # type: ignore
         )
 
         self._logger.debug("Active Settings:")
