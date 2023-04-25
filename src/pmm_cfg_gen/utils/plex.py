@@ -244,7 +244,7 @@ class PlexLibraryProcessor:
             "Template Files for Collection Type '{}': {}".format(self.plexLibrary.type, jsonpickle.dumps(tplFiles, unpicklable=False))
         )
 
-        fileNameBase = PlexItemHelper.formatString(globalSettingsMgr.settings.output.fileNameFormat.collections, library=self.plexLibrary, collection=item, item=None)
+        fileNameBase = PlexItemHelper.formatString(globalSettingsMgr.settings.output.fileNameFormat.collections, library=self.plexLibrary, collection=item, item=None, cleanTitleStrings=True)
 
         for tplFile in tplFiles:
             try:
@@ -259,8 +259,10 @@ class PlexLibraryProcessor:
                         self.templateManager.renderAndSave(
                             tplFile.fileName, fileName, tplArgs={
                                 "library": jsonpickle.dumps(self.plexLibrary, unpicklable=False),
-                                "item": item, 
-                                "pmm": self.__plexMetaManagerCache[self.plexLibraryName].collectionItem_to_dict(item.title) 
+                                "item": { 
+                                    "metadata": item, 
+                                    "pmm": pmmItem
+                                }
                             } 
                         )
                     else:
@@ -292,9 +294,9 @@ class PlexLibraryProcessor:
         )
 
         if collection is not None:
-            fileNameBase = PlexItemHelper.formatString(globalSettingsMgr.settings.output.fileNameFormat.collections, library=self.plexLibrary, collection=collection, item=None)
+            fileNameBase = PlexItemHelper.formatString(globalSettingsMgr.settings.output.fileNameFormat.collections, library=self.plexLibrary, collection=collection, item=None, cleanTitleStrings=True)
         elif len(items) == 1 and isinstance(items[0], Video):
-            fileNameBase = PlexItemHelper.formatString(globalSettingsMgr.settings.output.fileNameFormat.metadata, library=self.plexLibrary, collection=collection, item=items[0])
+            fileNameBase = PlexItemHelper.formatString(globalSettingsMgr.settings.output.fileNameFormat.metadata, library=self.plexLibrary, collection=collection, item=items[0], cleanTitleStrings=True)
         else:
             self._logger.error("Invalid item attempted to be processed: {}".format(items))
 
@@ -377,7 +379,7 @@ class PlexLibraryProcessor:
                                 } 
                             )
                         else:
-                            self._logger.warn("  Metadata File Name '{}' Exists. Skipping...".format(fileNameBase))
+                            self._logger.warn("  Metadata File Name '{}.{}' Exists. Skipping...".format(fileNameBase, tplFile.fileExtension))
                     else:
                         self._logger.debug("  Generating format '{}' for Metadata is not enabled. Skipping...".format(tplFile.format))
                 except:
@@ -466,7 +468,7 @@ class PlexLibraryProcessor:
             "Template Files for Report Type '{}': {}".format(self.plexLibrary.type, jsonpickle.dumps(tplFiles, unpicklable=False))
         )
 
-        fileNameBase = PlexItemHelper.formatString(globalSettingsMgr.settings.output.fileNameFormat.collectionsReport, library=self.plexLibrary, collection=None, item=None)
+        fileNameBase = PlexItemHelper.formatString(globalSettingsMgr.settings.output.fileNameFormat.collectionsReport, library=self.plexLibrary, collection=None, item=None, cleanTitleStrings=True)
         
         for tplFile in tplFiles:
             try:
@@ -519,7 +521,7 @@ class PlexLibraryProcessor:
             "Template Files for Report Type '{}': {}".format(self.plexLibrary.type, jsonpickle.dumps(tplFiles, unpicklable=False))
         )
 
-        fileNameBase = PlexItemHelper.formatString(globalSettingsMgr.settings.output.fileNameFormat.metadataReport, library=self.plexLibrary, collection=None, item=None)
+        fileNameBase = PlexItemHelper.formatString(globalSettingsMgr.settings.output.fileNameFormat.metadataReport, library=self.plexLibrary, collection=None, item=None, cleanTitleStrings=True)
 
         for tplFile in tplFiles:
             try:
@@ -572,7 +574,7 @@ class PlexLibraryProcessor:
             "Template Files for Report: {}".format(jsonpickle.dumps(tplFiles, unpicklable=False))
         )
 
-        fileNameBase = PlexItemHelper.formatString(globalSettingsMgr.settings.output.fileNameFormat.report, library=self.plexLibrary, collection=None, item=None)
+        fileNameBase = PlexItemHelper.formatString(globalSettingsMgr.settings.output.fileNameFormat.report, library=self.plexLibrary, collection=None, item=None, cleanTitleStrings=True)
 
         for tplFile in tplFiles:
             try:

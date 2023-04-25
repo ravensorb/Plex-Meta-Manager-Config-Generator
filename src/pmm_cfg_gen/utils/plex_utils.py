@@ -117,7 +117,7 @@ class PlexItemHelper:
         return title.replace("/", "-").replace("\\", "-").replace(":", "-").replace("*", "-").replace("?", "-").replace("\"", "-").replace("<", "-").replace(">", "-").replace("|", "-")
 
     @classmethod
-    def formatString(cls, formatString: str, library : LibrarySection | None = None, collection : Collection | None = None, item : Video | None = None, cleanTitleStrings : bool = True) -> str:
+    def formatString(cls, formatString: str, library : LibrarySection | None = None, collection : Collection | None = None, item : Video | None = None, cleanTitleStrings : bool = False) -> str:
         """
         The format string to format. This is a string with placeholders to be substituted.
         

@@ -105,7 +105,7 @@ class PlexMetaManagerCache:
         
         result = self.__collectionCache[name] if name in self.__collectionCache else None
         if result is None:
-            result = next((x for x in self.__collectionCache if "title" in x and x["title"] == name), None)
+            result = next((x for x in self.__collectionCache if ("title" in x and x["title"] == name) or ("alt_title" in x and x["alt_title"] == name) or ("orig_title" in x and x["orig_title"] == name)), None)
 
         return result
     
@@ -115,13 +115,15 @@ class PlexMetaManagerCache:
         result = self.__metadataCache[name] if name in self.__metadataCache else None
 
         if result is None:
+            name = name.strip()
             self._logger.debug("Metadata cache by name: '{}' not found, searching by title".format(name))
             for k in self.__metadataCache:
                 v = self.__metadataCache[k]
                 #self._logger.info("Metadata cache by name: '{}' checking title: '{}'".format(name, x))
-                if "title" in v and v["title"].strip() == name.strip(): 
+                if ("title" in v and v["title"].strip() == name) or ("alt_title" in v and v["alt_title"].strip() == name) or ("orig_title" in v and v["orig_title"].strip() == name): 
                     if year is None:
                         result = v 
+                        
                         break
                     elif year-1 <= v["year"] <= year+1:
                         self._logger.debug("Metadata cache by name: '{}' found by title".format(name))

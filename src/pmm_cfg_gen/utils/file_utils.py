@@ -42,6 +42,6 @@ def formatLibraryItemPath(output: SettingsOutput, library=None, collection=None,
      
      @return Path object that is ready to be saved to a file or None if there is no path to the
     """
-    strPath = PlexItemHelper.formatString(output.pathFormat, library=library, collection=collection, item=item)
+    strPath = PlexItemHelper.formatString(output.pathFormat, library=library, collection=collection, item=item, cleanTitleStrings=True)
 
     return Path(output.path, strPath).resolve()
