@@ -318,7 +318,7 @@ class SettingsManager:
         self._config.set_file(self.modulePath.joinpath("config_default.yaml"))
 
         if os.path.exists(fileName):
-            self._logger.debug("Loading Configuration from User Configuration")
+            self._logger.debug("Loading Configuration from User Configuration: '{}'".format(fileName))
             self._config.set_file(fileName)
 
         self._logger.debug("Loading Configuration from Environment")
@@ -327,6 +327,7 @@ class SettingsManager:
 
         if cmdLineArgs is not None:
             self._logger.debug("Loading Configuration from Command Line")
+            self._logger.debug("Command Line Args: {}".format(cmdLineArgs))
             self._config.set_args(cmdLineArgs, dots=True)
 
         self._config.set_redaction("plex.token", True)
@@ -337,6 +338,9 @@ class SettingsManager:
         self._logger.debug(
             "User Configuration Path: {}".format(self._config.user_config_path())
         )
+
+        self._logger.debug("Loaded Configuration:")
+        self._logger.debug(jsonpickle.dumps(self._config, unpicklable=False))
 
         self.settings = Settings(
             version=self._config["version"].get(confuse.Optional(str)),  # type: ignore
@@ -356,9 +360,7 @@ class SettingsManager:
                     self._config["thePosterDatabase"]["dbAssetUrl"].as_str()
                 ),
                 enablePro=bool(
-                    self._config["thePosterDatabase"]["enablePro"].get(
-                        confuse.Optional(False)
-                    )
+                    self._config["thePosterDatabase"]["enablePro"].get(bool)
                 ),
             ),
             theMovieDatabase=SettingsTheMovieDatabase(

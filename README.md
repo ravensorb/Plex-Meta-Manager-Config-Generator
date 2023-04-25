@@ -52,14 +52,6 @@ theMovieDatabase:
 
 output:
     path: <path to store generated output>
-
-generate:
-  formats: 
-    - yaml
-    - html
-  types
-    - collection.any
-    - metadata.any
 ```
 
 Notes:

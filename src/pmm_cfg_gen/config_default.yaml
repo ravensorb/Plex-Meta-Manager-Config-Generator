@@ -11,9 +11,9 @@ plex:
 #     - library: Movies
 #       path: /path/to/pmm/library
 thePosterDatabase:
-  enablePro: True
+  enablePro: False
   searchUrlPro: https://theposterdb.com/search/advanced/results
-  searchUrl: https://theposterdb.com/search/results
+  searchUrl: https://theposterdb.com/search
   dbAssetUrl: https://theposterdb.com/api/assets/
 theMovieDatabase:
   limitCollectionResults: 4

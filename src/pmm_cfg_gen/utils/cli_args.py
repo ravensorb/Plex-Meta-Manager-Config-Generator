@@ -10,7 +10,8 @@ globalArgParser = argparse.ArgumentParser()
 
 globalArgParser.add_argument(
     "--plex.serverUrl", 
-    help="Plex Server fully qualifed URL")
+    help="Plex Server fully qualifed URL"
+)
 globalArgParser.add_argument(
     "--plex.token", 
     help="Authentication Token (not claim token) for the plex server"
@@ -31,6 +32,7 @@ globalArgParser.add_argument(
 globalArgParser.add_argument(
     "--thePosterDatabase.enablePro",
     action="store_true",
+    default=None,
     help="Enable Pro features for The Poster Database (requires you to be able to login to the site)"
 )
 
@@ -40,6 +42,7 @@ globalArgParser.add_argument(
     nargs="*",
     choices=["library.any", "collection.any", "collection.movie", "collection.show", "collection.music", "collection.report", "metadata.any", "metadata.movie", "metadata.show", "metadata.music", "metadata.report", "report.any", "overlay.any", "overlay.movie", "overlay.show", "overlay.music", "overlay.report"],
     #default=["collection.any", "metadata.any", "report.any", "overlay.any"],
+    default=None,
     #help="Comma delimited list of item types to generate (default: %(default)s)",
     help=argparse.SUPPRESS
 )
@@ -48,6 +51,7 @@ globalArgParser.add_argument(
     nargs="*",
     choices=["json", "yaml", "html"],
     #default=["json", "yaml", "html"],
+    default=None,
     #help="Comma delimited list of formats to generate (default: %(default)s)",
     help=argparse.SUPPRESS
 )
