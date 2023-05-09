@@ -59,7 +59,7 @@ class PlexLibraryCache:
             (
                 x
                 for x in self.items
-                if x["title"] == PlexVideoHelper.formatItemTitle(item)
+                if x["title"] == PlexItemHelper.formatItemTitle(item)
             ),
             None,
         )

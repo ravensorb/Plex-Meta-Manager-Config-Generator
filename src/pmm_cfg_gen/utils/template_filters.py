@@ -213,6 +213,10 @@ def getItemGuidByName(item, guidName: str) -> str | None:
 
     return s
 
+def getNamedCollectionLabels(item) -> list[str] | None:
+    return PlexItemHelper.getNamedCollectionLabels(item)
+
+
 def getCollectionGuidsByName(collection, guidName: str) -> list | None:
     """
      Get a list of Guid's from a PlexCollection. This is a convenience function to call L { PlexCollectionHelper }'s C { getGuidByName } method
@@ -226,7 +230,7 @@ def getCollectionGuidsByName(collection, guidName: str) -> list | None:
 
     return pch.getGuidByName(guidName)
 
-def getTmDbCollectionId(collection, tryExactMatch : bool = False) -> list[int] | None:
+def getTmDbCollectionId(collection, tryExactMatch : bool = True) -> list[int] | None:
     """
      Get Tmdb collection ID. This is a wrapper around the TMDb findCollectionByName function to allow searching for collections by title
      

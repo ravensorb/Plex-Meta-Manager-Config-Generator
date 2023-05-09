@@ -43,7 +43,7 @@ class TheMovieDatabaseHelper:
 
         searchResults = self.__tmdbApi.search().collections(
             name
-        )  # .replace("collection", "").replace("Collection", "").strip())
+        ) 
 
         self.__loggerFunc(
             "tmdb result: {}".format(jsonpickle.dumps(searchResults, unpicklable=False))
@@ -53,7 +53,7 @@ class TheMovieDatabaseHelper:
         
         if searchResults is not None and searchResults.results is not None:
             if exactMatch:
-                results = [x.id for x in searchResults.results if x.name == name]
+                results = [x.id for x in searchResults.results if x.name == name or x.name == f"{name} Collection" ]
 
             if not exactMatch or len(results) == 0:
                 results = [x.id for x in searchResults.results]

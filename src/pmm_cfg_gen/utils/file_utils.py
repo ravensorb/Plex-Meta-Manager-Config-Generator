@@ -19,7 +19,7 @@ def writeFile(fileName: str | Path, data: str):
     """
     logging.getLogger("pmm_cfg_gen").debug("Writing File: {}".format(fileName))
 
-    p = Path(fileName)
+    p = Path(str(fileName))
 
     # Create a path to the parent directory if it doesn t exist.
     if not p.resolve().parent.exists():
@@ -32,7 +32,7 @@ def writeFile(fileName: str | Path, data: str):
         f.write(data)
 
 
-def formatLibraryItemPath(output: SettingsOutput, library=None, collection=None, item=None) -> Path:
+def formatLibraryItemPath(output: SettingsOutput, library=None, collection=None, item=None, pmm=None) -> Path:
     """
      Formats path with library and item information. This is used to make sure paths are formatted correctly when saving a library or item
      
@@ -42,6 +42,6 @@ def formatLibraryItemPath(output: SettingsOutput, library=None, collection=None,
      
      @return Path object that is ready to be saved to a file or None if there is no path to the
     """
-    strPath = PlexItemHelper.formatString(output.pathFormat, library=library, collection=collection, item=item, cleanTitleStrings=True)
+    strPath = PlexItemHelper.formatString(output.pathFormat, library=library, collection=collection, item=item, pmm=pmm, cleanTitleStrings=True)
 
     return Path(output.path, strPath).resolve()

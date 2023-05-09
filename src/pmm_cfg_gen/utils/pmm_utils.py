@@ -57,7 +57,9 @@ class PlexMetaManagerCache:
                             self.__overlayCache[it] = data["overlays"][it]
 
             except ruamel.yaml.YAMLError as exc:
-                self._logger.error("Error parsing YAML file: {}".format(exc))
+                self._logger.error("Error parsing YAML file '{}'. Details: {}".format(fileName, exc))
+            except Exception as exc:
+                self._logger.error("Invalid PMM file '{}'. Details: {}".format(fileName, exc))
 
     def saveResultsToYaml(self, fileName : str | Path):
         self._logger.info("Saving results to file: '{}'".format(fileName))
@@ -74,6 +76,7 @@ class PlexMetaManagerCache:
         
         result = {
             "title": data["title"] if "title" in data else collectionName,
+            "label": self.__getAttributeFromItemByName(data, "label"),
             "collection": self.__getAttributeFromItemByName(data, "collection"),
             "list": self.__getAttributeFromItemByName(data, "list"),
             "movie": self.__getAttributeFromItemByName(data, "movie"),
@@ -91,6 +94,7 @@ class PlexMetaManagerCache:
         
         result = {
             "title": data["title"] if "title" in data else metadataName,
+            "label": self.__getAttributeFromItemByName(data, "label"),
             "poster": self.__getPosterUrlFromItem(data),            
         }
 
@@ -233,6 +237,8 @@ class PlexMetaManagerCache:
         return result
 
     def __getAttributeFromItemByName(self, data : dict, attribute : str) -> list | None:
+        if data is None: return None
+        
         self._logger.debug("Getting '{}' from item: '{}'".format(attribute, data))
 
         result = []
@@ -252,6 +258,8 @@ class PlexMetaManagerCache:
         return result
 
     def __getPosterUrlFromItem(self, data : dict) -> str | None:
+        if data is None: return None
+        
         self._logger.debug("Getting Poster Url from: '{}'".format(data))
         
         posterUrl = self.__getAttributeFromItemByName(data, "url_poster")

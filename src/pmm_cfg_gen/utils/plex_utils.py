@@ -117,7 +117,7 @@ class PlexItemHelper:
         return title.replace("/", "-").replace("\\", "-").replace(":", "-").replace("*", "-").replace("?", "-").replace("\"", "-").replace("<", "-").replace(">", "-").replace("|", "-")
 
     @classmethod
-    def formatString(cls, formatString: str, library : LibrarySection | None = None, collection : Collection | None = None, item : Video | None = None, cleanTitleStrings : bool = False) -> str:
+    def formatString(cls, formatString: str, library : LibrarySection | None = None, collection : Collection | None = None, item : Video | None = None, pmm : dict | None = None, cleanTitleStrings : bool = False) -> str:
         """
         The format string to format. This is a string with placeholders to be substituted.
         
@@ -142,6 +142,10 @@ class PlexItemHelper:
             result = result.replace("{{collection.minYear}}", str(collection.minYear) if collection.minYear else "")
             result = result.replace("{{collection.minYear}}", str(collection.maxYear) if collection.maxYear else "")
 
+            lstLabels = PlexItemHelper.getNamedCollectionLabels(collection)
+            if lstLabels is not None:
+                result = result.replace("{{universe}}", lstLabels[0] if len(lstLabels) > 0 and lstLabels[0] not in result else "")
+
         if item is not None:
             result = result.replace("{{item.title}}", cls.cleanString(item.title) if cleanTitleStrings else item.title)
             result = result.replace("{{item.titleSort}}", item.titleSort if item.titleSort else "")
@@ -151,9 +155,20 @@ class PlexItemHelper:
             result = result.replace("{{item.contentRating}}", item.contentRating if item.contentRating else "")
             result = result.replace("{{item.editionTitle}}", item.editionTitle if isinstance(item, Movie) and item.editionTitle else "")
 
+            lstLabels = PlexItemHelper.getNamedCollectionLabels(item)
+            if lstLabels is not None:
+                result = result.replace("{{universe}}", lstLabels[0] if len(lstLabels) > 0 and lstLabels[0] not in result else "")
+
+        if pmm is not None:
+            result = result.replace("{{universe}}", pmm["label"]) if "{{universe}}" in result and "label" in pmm and pmm["label"] not in result else ""
+
         #logging.getLogger("pmm_cfg_gen").debug("formatString: {} -> {}".format(formatString, result))
 
-        return result.replace("()", "").replace("[]", "").strip()
+        result = result.replace("()", "").replace("[]", "").strip()
+        if result.startswith("-"):
+            result = result[1:].strip()
+
+        return result
 
     @classmethod
     def cleanItemTitle(cls, item : PlexPartialObject) -> str:
@@ -182,6 +197,25 @@ class PlexItemHelper:
             return PlexItemHelper.formatString(strFormat, item=item)
 
         return ""
+
+    @classmethod
+    def getItemLabels(cls, item: PlexPartialObject) -> list[str] | None:
+        listResult = []
+
+        listResult = [ x.tag for x in item.labels if x.tag != "PMM" ]
+
+        return listResult
+
+    @classmethod
+    def getNamedCollectionLabels(cls, item : PlexPartialObject) -> list[str] | None:
+        lstLabels = PlexItemHelper.getItemLabels(item)
+
+        result = []
+        if lstLabels is not None:
+            result = [ x.replace("PMM-C-", "").replace("PMM-U-", "") for x in lstLabels if x.startswith("PMM-C-") or x.startswith("PMM-U-") ]
+            
+        return result 
+    
 
 class PlexCollectionHelper:
     __collection: Collection
@@ -227,6 +261,9 @@ class PlexCollectionHelper:
         """
         return self.__guids[name] if name in self.__guids.keys() else None
 
+    def getCollectionLabels(self) -> list[str] | None:
+        return PlexItemHelper.getNamedCollectionLabels(self.__collection)
+    
     @property
     def guids(self) -> dict[str, list]:
         """
@@ -275,14 +312,23 @@ class PlexVideoHelper:
             if "guid" in self.__item.__dict__ and not self.__guids:
                 # "guid": "com.plexapp.agents.thetvdb://73546?lang=en",
                 try:
-                    s = self.__item.guid.replace("com.plexapp.agents.thetvdb://", "")
-                    self.__guids["tvdb"] = self.__item.guid.replace(
-                        "com.plexapp.agents.thetvdb://", ""
-                    )
+                    if self.__item.guid.startswith("com.plexapp.agents.thetvdb://"):
+                        self.__guids["tvdb"] = self.__item.guid.replace(
+                            "com.plexapp.agents.thetvdb://", ""
+                        )
+
+                    if self.__item.guid.startswith("com.plexapp.agents.themoviedb://"):
+                        self.__guids["tmdb"] = self.__item.guid.replace(
+                            "com.plexapp.agents.themoviedb://", ""
+                        )
 
                     # If tvdb is not present in the guids tvdb then it will be removed from the guids tvdb.
                     if "?" in self.__guids["tvdb"]:
                         self.__guids["tvdb"] = str(self.__guids["tvdb"]).split("?")[0]
+
+                    # If tvdb is not present in the guids tvdb then it will be removed from the guids tmdb.
+                    if "?" in self.__guids["tmdb"]:
+                        self.__guids["tmdb"] = str(self.__guids["tmdb"]).split("?")[0]
                 except:
                     pass
         except:
@@ -308,6 +354,9 @@ class PlexVideoHelper:
         """
         return self.__guids[name] if name in self.__guids.keys() else None
 
+    def getCollectionLabels(self) -> list[str] | None:
+        return PlexItemHelper.getNamedCollectionLabels(self.__item)
+    
     @property
     def guids(self) -> dict[str, str]:
         """

@@ -122,6 +122,7 @@ class TemplateManager:
         
         self.__tplEnv.filters["generateTpDbSearchUrl"] = template_filters.generateTpDbSearchUrl
         self.__tplEnv.filters["getItemGuidByName"] = template_filters.getItemGuidByName
+        self.__tplEnv.filters["getNamedCollectionLabels"] = template_filters.getNamedCollectionLabels
         self.__tplEnv.filters["getCollectionGuidsByName"] = template_filters.getCollectionGuidsByName
         self.__tplEnv.filters["getTmDbCollectionId"] = template_filters.getTmDbCollectionId
         # self.__tplEnv.filters["getTvDbListId"] = template_filters.getTvDbListId

@@ -28,10 +28,10 @@ templates:
   - { type: "library.any", format: "html", file: "library.html.j2" }
   - { type: "library.any", format: "json", file: "library.json.j2", subFolder: "json" }
   collection:
-  - { type: "collection.movie", format: "yaml", file: "movie.collection.yaml.j2" }
+  - { type: "collection.movie", format: "yaml", file: "movie.collection.yaml.j2", defaultTemplate: "tplTMDBCollection" }
   - { type: "collection.movie", format: "html", file: "movie.collection.html.j2" }
   - { type: "collection.movie", format: "json", file: "movie.collection.json.j2", subFolder: "json" }
-  - { type: "collection.show", format: "yaml", file: "show.collection.yaml.j2" }
+  - { type: "collection.show", format: "yaml", file: "show.collection.yaml.j2", defaultTemplate: "tplTMDBCollection"  }
   - { type: "collection.show", format: "html", file: "show.collection.html.j2" }
   - { type: "collection.show", format: "json", file: "show.collection.json.j2", subFolder: "json" }
   - { type: "collection.music", format: "yaml", file: "music.collection.yaml.j2" }
@@ -41,10 +41,10 @@ templates:
   - { type: "collection.report", format: "html", file: "report.collection.html.j2" }
   - { type: "collection.report", format: "json", file: "report.collection.json.j2", subFolder: "json" }
   metadata:
-  - { type: "metadata.movie", format: "yaml", file: "movie.metadata.yaml.j2" }
+  - { type: "metadata.movie", format: "yaml", file: "movie.metadata.yaml.j2", defaultTemplate: "tplTMDBCollection"  }
   - { type: "metadata.movie", format: "html", file: "movie.metadata.html.j2" }
   - { type: "metadata.movie", format: "json", file: "movie.metadata.json.j2", subFolder: "json" }
-  - { type: "metadata.show", format: "yaml", file: "show.metadata.yaml.j2" }
+  - { type: "metadata.show", format: "yaml", file: "show.metadata.yaml.j2", defaultTemplate: "tplTMDBCollection"  }
   - { type: "metadata.show", format: "html", file: "show.metadata.html.j2" }
   - { type: "metadata.show", format: "json", file: "show.metadata.json.j2", subFolder: "json" }
   - { type: "metadata.music", format: "yaml", file: "music.metadata.yaml.j2" }
@@ -74,8 +74,8 @@ output:
   path: "./data"
   pathFormat: "{{library.title}}"
   fileNameFormat:
-    collections: "{{collection.title}}"
-    metadata: "{{item.title}} ({{item.year}}) [{{item.editionTitle}}]"
+    collections: "{{universe}} - {{collection.title}}"
+    metadata: "{{universe}} - {{item.title}} ({{item.year}}) [{{item.editionTitle}}]"
     collectionsReport: "{{library.title}} - Collection Report"
     metadataReport: "{{library.title}} - Metadata Report"
     report: "{{library.title}} - Report"
