@@ -14,13 +14,12 @@ metadata:
         # imdb: {% if item.metadata | getItemGuidByName("imdb") | default("") | length > 0 %}https://www.imdb.com/title/{{ item.metadata | getItemGuidByName("imdb") }}{% endif %}
         seasons:
         {%- for season in item.seasons %}
-            {{ season.seasonNumber }}:
-                {%- set pmmSeasonPoster = item.pmm | getPMMSeason(season.seasonNumber, "poster") %}
+            {%- set pmmSeasonPoster = item.pmm | getPMMSeason(season.seasonNumber, "poster") %}
+            {% if not pmmSeasonPoster %}# {% endif %}{{ season.seasonNumber }}:
                 {% if not pmmSeasonPoster %}# {% endif %}url_poster: {{ pmmSeasonPoster | default(settings.thePosterDatabase.dbAssetUrl, True) }}
                 # IDs: {{ season.guids | map(attribute="id") | list | join(', ')}}
                 # {{ season | generateTpDbSearchUrl }}
-        {%- endfor %}
-        
+        {%- endfor %}        
 {% endfor %}
 
 {#- 
