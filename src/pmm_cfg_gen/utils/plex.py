@@ -244,7 +244,9 @@ class PlexLibraryProcessor:
             "Template Files for Collection Type '{}': {}".format(self.plexLibrary.type, jsonpickle.dumps(tplFiles, unpicklable=False))
         )
 
-        fileNameBase = PlexItemHelper.formatString(globalSettingsMgr.settings.output.fileNameFormat.collections, library=self.plexLibrary, collection=item, item=None, cleanTitleStrings=True)
+        fileNameBase = PlexItemHelper.formatString(globalSettingsMgr.settings.output.fileNameFormat.collections, library=self.plexLibrary, collection=item, item=None, pmm=pmmItem, cleanTitleStrings=True)
+
+        self._logger.debug("Base FileName: {}".format(fileNameBase))
 
         for tplFile in tplFiles:
             try:
@@ -255,7 +257,7 @@ class PlexLibraryProcessor:
                     else: 
                         fileName = Path(self.pathLibrary, "collections", "{}.{}".format(fileNameBase, tplFile.fileExtension))
 
-                    if not os.path.exists(fileName):
+                    if not os.path.exists(fileName) or globalSettingsMgr.settings.output.overwrite:
                         self.templateManager.renderAndSave(
                             tplFile.fileName, fileName, tplArgs={
                                 "library": jsonpickle.dumps(self.plexLibrary, unpicklable=False),
@@ -294,9 +296,13 @@ class PlexLibraryProcessor:
         )
 
         if collection is not None:
-            fileNameBase = PlexItemHelper.formatString(globalSettingsMgr.settings.output.fileNameFormat.collections, library=self.plexLibrary, collection=collection, item=None, cleanTitleStrings=True)
+            pmmItem = self.__plexMetaManagerCache[self.plexLibrarySettings.name].collectionItem_to_dict(collection.title)
+            
+            fileNameBase = PlexItemHelper.formatString(globalSettingsMgr.settings.output.fileNameFormat.collections, library=self.plexLibrary, collection=collection, item=None, pmm=pmmItem, cleanTitleStrings=True)
         elif len(items) == 1 and isinstance(items[0], Video):
-            fileNameBase = PlexItemHelper.formatString(globalSettingsMgr.settings.output.fileNameFormat.metadata, library=self.plexLibrary, collection=collection, item=items[0], cleanTitleStrings=True)
+            pmmItem = self.__plexMetaManagerCache[self.plexLibrarySettings.name].metadataItem_to_dict(items[0].title)
+            
+            fileNameBase = PlexItemHelper.formatString(globalSettingsMgr.settings.output.fileNameFormat.metadata, library=self.plexLibrary, collection=collection, item=items[0], pmm=pmmItem, cleanTitleStrings=True)
         else:
             self._logger.error("Invalid item attempted to be processed: {}".format(items))
 
@@ -371,7 +377,7 @@ class PlexLibraryProcessor:
                         else: 
                             fileName = Path(self.pathLibrary, "metadata", "{}.{}".format(fileNameBase, tplFile.fileExtension))
 
-                        if not os.path.exists(fileName):
+                        if not os.path.exists(fileName) or globalSettingsMgr.settings.output.overwrite:
                             self.templateManager.renderAndSave(
                                 tplFile.fileName, fileName, tplArgs={
                                     "library": jsonpickle.dumps(self.plexLibrary, unpicklable=False),
@@ -479,10 +485,10 @@ class PlexLibraryProcessor:
                     else: 
                         fileName = Path(self.pathLibrary, "reports", "{}.{}".format(fileNameBase, tplFile.fileExtension))
 
-                    if not os.path.exists(fileName):
+                    if not os.path.exists(fileName) or globalSettingsMgr.settings.output.overwrite:
                         self.templateManager.renderAndSave(
                             tplFile.fileName, fileName, tplArgs={
-                                                                "library": jsonpickle.dumps(self.plexLibrary, unpicklable=False),
+                                                                "library": self.plexLibrary,
                                                                 "items": self.__collectionProcessedCache[self.plexLibrarySettings.name],
                                                                 "stats": json.loads(
                                                                     str(
@@ -532,7 +538,7 @@ class PlexLibraryProcessor:
                     else: 
                         fileName = Path(self.pathLibrary, "reports", "{}.{}".format(fileNameBase, tplFile.fileExtension))
 
-                    if not os.path.exists(fileName):
+                    if not os.path.exists(fileName) or globalSettingsMgr.settings.output.overwrite:
                         self.templateManager.renderAndSave(
                             tplFile.fileName, fileName, tplArgs={
                                                                 "library": jsonpickle.dumps(self.plexLibrary, unpicklable=False),
@@ -585,7 +591,7 @@ class PlexLibraryProcessor:
                     else: 
                         fileName = Path(self.pathLibrary, "reports", "{}.{}".format(fileNameBase, tplFile.fileExtension))
 
-                    if not os.path.exists(fileName):
+                    if not os.path.exists(fileName) or globalSettingsMgr.settings.output.overwrite:
                         self.templateManager.renderAndSave(
                             tplFile.fileName, fileName, tplArgs={
                                                                 "library": jsonpickle.dumps(self.plexLibrary, unpicklable=False),

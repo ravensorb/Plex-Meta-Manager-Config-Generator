@@ -26,6 +26,11 @@ globalArgParser.add_argument(
     help="Root path to store generated files (default: ./data)"
 )
 globalArgParser.add_argument(
+    "--output.overwrite",
+    default=False,
+    help="Overwrite existing files (default: %(default)s)",
+)
+globalArgParser.add_argument(
     "--theMovieDatabase.apiKey",
     help="The Movie Database API Key"
 )

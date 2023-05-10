@@ -76,13 +76,18 @@ class PlexMetaManagerCache:
         
         result = {
             "title": data["title"] if "title" in data else collectionName,
-            "label": self.__getAttributeFromItemByName(data, "label"),
-            "collection": self.__getAttributeFromItemByName(data, "collection"),
-            "list": self.__getAttributeFromItemByName(data, "list"),
-            "movie": self.__getAttributeFromItemByName(data, "movie"),
-            "show": self.__getAttributeFromItemByName(data, "show"),
+            "label": self.__getAttributeListFromItemByName(data, "label"),
+            "collection": self.__getAttributeListFromItemByName(data, "collection"),
+            "list": self.__getAttributeListFromItemByName(data, "list"),
+            "movie": self.__getAttributeListFromItemByName(data, "movie"),
+            "show": self.__getAttributeListFromItemByName(data, "show"),
             "poster": self.__getPosterUrlFromItem(data),
-            "trakt": self.__getAttributeFromItemByName(data, "trakt_list"),
+            "trakt": self.__getAttributeListFromItemByName(data, "trakt_list"),
+            "sort": {
+                "prefix": self.__getAttributeFromItemByName(data, "sort_prefix"),
+                "order": self.__getAttributeFromItemByName(data, "sort_order"),
+                "separator": self.__getAttributeFromItemByName(data, "sort_separator"),
+            }
         }
 
         return result
@@ -94,7 +99,7 @@ class PlexMetaManagerCache:
         
         result = {
             "title": data["title"] if "title" in data else metadataName,
-            "label": self.__getAttributeFromItemByName(data, "label"),
+            "label": self.__getAttributeListFromItemByName(data, "label"),
             "poster": self.__getPosterUrlFromItem(data),            
         }
 
@@ -232,28 +237,33 @@ class PlexMetaManagerCache:
         self._logger.debug("Getting '{}' from collection: '{}'".format(listName, collectionName))
         self._logger.debug("Data: '{}'".format(data))
 
-        result = self.__getAttributeFromItemByName(data, listName)
+        result = self.__getAttributeListFromItemByName(data, listName)
             
         return result
 
-    def __getAttributeFromItemByName(self, data : dict, attribute : str) -> list | None:
+    def __getAttributeListFromItemByName(self, data : dict, attribute : str) -> list | None:
+        result = self.__stringCollectionToList(self.__getAttributeFromItemByName(data, attribute))
+
+        return result
+
+    def __getAttributeFromItemByName(self, data : dict, attribute : str) -> str | None:
         if data is None: return None
         
         self._logger.debug("Getting '{}' from item: '{}'".format(attribute, data))
 
-        result = []
+        result = None
 
         if attribute in data: 
             self._logger.debug("Searching Root: '{}'".format(data[attribute]))
-            return self.__stringCollectionToList(data[attribute])
+            return data[attribute]
 
         if "template" in data:
             self._logger.debug("Searching Template: '{}'".format(data["template"]))
-            if attribute in data["template"]: return self.__stringCollectionToList(data["template"][attribute])
+            if attribute in data["template"]: return data["template"][attribute]
 
         if "variables" in data:
             self._logger.debug("Searching Variable: '{}'".format(data["variables"]))
-            if attribute in data["variables"]: return self.__stringCollectionToList(data["variables"][attribute])
+            if attribute in data["variables"]: return data["variables"][attribute]
             
         return result
 
@@ -262,8 +272,8 @@ class PlexMetaManagerCache:
         
         self._logger.debug("Getting Poster Url from: '{}'".format(data))
         
-        posterUrl = self.__getAttributeFromItemByName(data, "url_poster")
-        if posterUrl is None or len(posterUrl) == 0: posterUrl = self.__getAttributeFromItemByName(data, "poster")
+        posterUrl = self.__getAttributeListFromItemByName(data, "url_poster")
+        if posterUrl is None or len(posterUrl) == 0: posterUrl = self.__getAttributeListFromItemByName(data, "poster")
 
         self._logger.debug("Poster Url: '{}'".format(posterUrl))
         
@@ -272,7 +282,8 @@ class PlexMetaManagerCache:
 
         return str(posterUrl[0]) if isinstance(posterUrl, list) else str(posterUrl)
 
-    def __stringCollectionToList(self, collection : str | list) -> list[str]:
+    def __stringCollectionToList(self, collection : str | list | None) -> list[str]:
+        if collection is None: return []        
 
         if isinstance(collection, list):
             return list(map(str, collection))

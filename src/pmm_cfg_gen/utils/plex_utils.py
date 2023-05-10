@@ -147,9 +147,11 @@ class PlexItemHelper:
             result = result.replace("{{collection.minYear}}", str(collection.minYear) if collection.minYear else "")
             result = result.replace("{{collection.minYear}}", str(collection.maxYear) if collection.maxYear else "")
 
-            lstLabels = PlexItemHelper.getNamedCollectionLabels(collection)
-            if lstLabels is not None:
-                result = result.replace("{{universe}}", lstLabels[0] if len(lstLabels) > 0 and lstLabels[0] not in result else "")
+            if "{{universe}}" in result:
+                lstLabels = PlexItemHelper.getNamedCollectionLabels(collection)
+                if lstLabels is not None and len(lstLabels) > 0:
+                    logging.getLogger("pmm_cfg_gen").debug("formatString collection labels: {}".format(lstLabels))
+                    result = result.replace("{{universe}}", lstLabels[0] if lstLabels[0] not in result else "")
 
         if item is not None:
             result = result.replace("{{item.title}}", cls.cleanString(item.title) if cleanTitleStrings else item.title)
@@ -160,18 +162,28 @@ class PlexItemHelper:
             result = result.replace("{{item.contentRating}}", item.contentRating if item.contentRating else "")
             result = result.replace("{{item.editionTitle}}", item.editionTitle if isinstance(item, Movie) and item.editionTitle else "")
 
-            lstLabels = PlexItemHelper.getNamedCollectionLabels(item)
-            if lstLabels is not None:
-                result = result.replace("{{universe}}", lstLabels[0] if len(lstLabels) > 0 and lstLabels[0] not in result else "")
+            if "{{universe}}" in result:
+                lstLabels = PlexItemHelper.getNamedCollectionLabels(item)
+                if lstLabels is not None and len(lstLabels) > 0:
+                    logging.getLogger("pmm_cfg_gen").debug("formatString item labels: {}".format(lstLabels))
+                    result = result.replace("{{universe}}", lstLabels[0] if lstLabels[0] not in result else "")
 
         if pmm is not None:
-            result = result.replace("{{universe}}", pmm["label"]) if "{{universe}}" in result and "label" in pmm and pmm["label"] not in result else ""
+            if "{{universe}}" in result:
+                if "label" in pmm and len(pmm["label"]) > 0:
+                    logging.getLogger("pmm_cfg_gen").debug("formatString pmm labels: {}".format(pmm))
+                    result = result.replace("{{universe}}", pmm["label"][0] if pmm["label"][0] not in result else "")
 
-        #logging.getLogger("pmm_cfg_gen").debug("formatString: {} -> {}".format(formatString, result))
+        #logging.getLogger("pmm_cfg_gen").debug("formatString Before Cleaning: {} -> {}".format(formatString, result))
+
+        # Lets remove any remaining tokens
+        result = re.sub(r"\{\{[^\}]*\}\}", "", result)
 
         result = result.replace("()", "").replace("[]", "").strip()
         if result.startswith("-"):
             result = result[1:].strip()
+
+        #logging.getLogger("pmm_cfg_gen").debug("formatString After Cleaning: {} -> {}".format(formatString, result))
 
         return result
 

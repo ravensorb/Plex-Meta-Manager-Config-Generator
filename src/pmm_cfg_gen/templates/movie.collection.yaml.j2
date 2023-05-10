@@ -5,7 +5,7 @@ collections:
     {%- set lstShow = "" %}
     {%- set lstMovie = item.metadata | getCollectionGuidsByName("tmdb") | concat(item.pmm.movie) | unique | join(", ") %}
     {%- set lstLabels = item.metadata | getNamedCollectionLabels | concat(item.pmm.label) | unique | join(", ") %}
-    variables: { {% if lstLabels %}label: "{{ lstLabels }}", {% endif %}{% if lstCollection | length > 0 %}collection: "{{ lstCollection }}", {% endif %}{% if lstList | length > 0 %}list: "{{ lstList }}", {% endif %}{% if lstMovie | length > 0 %}movie: "{{ lstMovie }}", {% endif %}{% if lstShow | length > 0 %}show: "{{ lstShow }}", {% endif %}{% if settings.thePosterDatabase.dbAssetUrl %}poster: {{ item.pmm.poster | default(settings.thePosterDatabase.dbAssetUrl, True) }}{% endif %} }
+    variables: { {% if lstLabels %}label: "{{ lstLabels }}", {% endif %}{% if item.pmm.sort.prefix %}sort_prefix: "{{item.pmm.sort.prefix}}", {% endif %}{% if item.pmm.sort.order %}sort_order: "{{ item.pmm.sort.order }}", {% endif %}{% if item.pmm.sort.separator %}sort_separator: "{{ item.pmm.sort.separator }}", {% endif %}{% if lstCollection | length > 0 %}collection: "{{ lstCollection }}", {% endif %}{% if lstList | length > 0 %}list: "{{ lstList }}", {% endif %}{% if lstMovie | length > 0 %}movie: "{{ lstMovie }}", {% endif %}{% if lstShow | length > 0 %}show: "{{ lstShow }}", {% endif %}{% if settings.thePosterDatabase.dbAssetUrl %}poster: {{ item.pmm.poster | default(settings.thePosterDatabase.dbAssetUrl, True) }}{% endif %} }
     template: [ { name: tplCommonBase }, { name: tplCommonCollection }, { name: tplTMDBCollection } ]    
     {%- if item.metadata.summary %}
     summary: |
@@ -40,13 +40,13 @@ templates:
     default:
       sort_prefix: ""
       sort_order: ""
-      sort_seperator: ""
+      sort_separator: ""
     optional:
       - label
     label: "PMM-U-<<label>>"
     item_label: "PMM-U-<<label>>"
     collection_order: release
-    sort_title: <<sort_prefix>><<sort_seperator>><<sort_order>><<sort_seperator>><<collection_name>>
+    sort_title: <<sort_prefix>><<sort_separator>><<sort_order>><<sort_separator>><<collection_name>>
 
   tplTVDBCollection:
     optional:

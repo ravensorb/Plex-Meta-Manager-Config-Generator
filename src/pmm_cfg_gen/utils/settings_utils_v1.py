@@ -87,11 +87,13 @@ class SettingsOutput:
     path: str
     pathFormat: str
     fileNameFormat: SettingsOutputFileNames
+    overwrite: bool
 
-    def __init__(self, path: str, pathFormat: str, fileNameFormat: SettingsOutputFileNames) -> None:
+    def __init__(self, path: str, pathFormat: str, overwrite : bool, fileNameFormat: SettingsOutputFileNames) -> None:
         self.path = path
         self.pathFormat = pathFormat
         self.fileNameFormat = fileNameFormat
+        self.overwrite = overwrite
 
 
 class SettingsPlexLibrary:
@@ -411,6 +413,7 @@ class SettingsManager:
             output=SettingsOutput(
                 path=str(self._config["output"]["path"].as_str()),
                 pathFormat=str(self._config["output"]["pathFormat"].as_str()),
+                overwrite=bool(self._config["output"]["overwrite"].get(confuse.Optional(False))),
                 fileNameFormat=SettingsOutputFileNames(
                     collections=str(
                         self._config["output"]["fileNameFormat"]["collections"].get(
