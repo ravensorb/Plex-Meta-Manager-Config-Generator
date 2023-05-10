@@ -7,7 +7,6 @@ from pmm_cfg_gen.utils.timer import timer
 
 ###################################################################################################
 
-
 class PlexStatsTotals:
     total: int
     processed: int

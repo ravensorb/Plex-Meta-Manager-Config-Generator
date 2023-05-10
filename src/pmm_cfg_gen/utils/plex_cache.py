@@ -27,7 +27,7 @@ class PlexLibraryCache:
 
     def addMediaItem(self, item: Media):
         if not self.__isItemCached(item):
-            itemTitle = PlexItemHelper.formatItemTitle(item)
+            itemTitle = PlexItemHelper.formatItemTitle(item) # type: ignore
             self.items.append({"title": itemTitle, "metadata": item})
 
     def to_cached_items_dict(self) -> dict:

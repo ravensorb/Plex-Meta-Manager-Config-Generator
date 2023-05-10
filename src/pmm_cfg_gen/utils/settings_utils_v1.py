@@ -67,6 +67,7 @@ class SettingsGenerate:
 
         return typeValue in self.types
 
+
 class SettingsOutputFileNames:
     collections: str
     metadata: str
@@ -93,51 +94,78 @@ class SettingsOutput:
         self.fileNameFormat = fileNameFormat
 
 
+class SettingsPlexLibrary:
+    name: str
+    path: str | None
+    pmm_path: str | None
+
+    def __init__(self, name: str, path: str | None = None, pmm_path: str | None = None) -> None:
+        self.name = name.strip()
+        self.path = path.strip() if path is not None else name.strip()
+        self.pmm_path = pmm_path.strip() if pmm_path is not None else None
+
+
 class SettingsPlexServer:
     serverUrl: str
     token: str
-    libraries: List[str]
+    libraries: list[SettingsPlexLibrary]
 
-    def __init__(self, serverUrl: str, token: str, libraries: List[str]) -> None:
+    def __init__(self, serverUrl: str, token: str, libraries: List) -> None:
         self.serverUrl = serverUrl
         self.token = token
-        self.libraries = libraries
 
-
-class SettingsPlexMetaManagerFolder:
-    library: str
-    path: str
-
-    def __init__(self, library: str, path: str) -> None:
-        self.library = library
-        self.path = path
+        if libraries is not None:
+            self.libraries = []
+            
+            for library in libraries:
+                if isinstance(library, dict):
+                    self.libraries += [SettingsPlexLibrary(**library)]
+                elif isinstance(library, str):
+                    self.libraries += [SettingsPlexLibrary(name=library)]
 
     @classmethod
     def from_dict(cls, data: dict):
         return cls(
-            data["library"],
-            data["path"]
+            data["serverUrl"],
+            data["token"],
+            data["libraries"]
         )
+                    
+
+# class SettingsPlexMetaManagerFolder:
+#     library: str
+#     path: str
+
+#     def __init__(self, library: str, path: str) -> None:
+#         self.library = library
+#         self.path = path
+
+#     @classmethod
+#     def from_dict(cls, data: dict):
+#         return cls(
+#             data["library"],
+#             data["path"]
+#         )
 
 
 class SettingsPlexMetaManager:
     cacheExistingFiles: bool
-    folders: List[SettingsPlexMetaManagerFolder]
+    # folders: List[SettingsPlexMetaManagerFolder]
 
-    def __init__(self, cacheExistingFiles: bool, folders: List[SettingsPlexMetaManagerFolder]) -> None:
+    def __init__(self, cacheExistingFiles: bool) -> None: # , folders: List[SettingsPlexMetaManagerFolder]) -> None:
         self.cacheExistingFiles = cacheExistingFiles
-        self.folders = folders
+        # self.folders = folders
 
-    def getFolderByLibraryName(self, libraryName: str) -> SettingsPlexMetaManagerFolder | None:
-        result = next((x for x in self.folders if x.library.strip() == libraryName.strip()), None)
+    # def getFolderByLibraryName(self, libraryName: str) -> SettingsPlexMetaManagerFolder | None:
+    #     result = next((x for x in self.folders if x.library.strip() == libraryName.strip()), None)
 
-        return result
+    #     return result
 
     @classmethod
     def from_dict(cls, data: dict):
         return cls(
             data["cacheExistingFiles"],
-            [SettingsPlexMetaManagerFolder.from_dict(x) for x in data["folders"]]
+            # [SettingsPlexMetaManagerFolder.from_dict(x) for x in data["folders"]]
         )
 
 

@@ -16,7 +16,7 @@ from plexapi.collection import Collection
 from plexapi.video import Video
 from plexapi.server import PlexServer
 
-from pmm_cfg_gen.utils.settings_utils_v1 import globalSettingsMgr, SettingsTemplateLibraryTypeEnum, SettingsTemplateFileFormatEnum
+from pmm_cfg_gen.utils.settings_utils_v1 import globalSettingsMgr, SettingsTemplateLibraryTypeEnum, SettingsTemplateFileFormatEnum, SettingsPlexLibrary
 from pmm_cfg_gen.utils.file_utils import formatLibraryItemPath
 from pmm_cfg_gen.utils.plex_stats import PlexStats
 from pmm_cfg_gen.utils.plex_utils import PlexItemHelper, PlexVideoHelper, PlexCollectionHelper
@@ -47,7 +47,7 @@ class PlexLibraryProcessor:
 
     plexServer: PlexServer
     plexLibrary: LibrarySection
-    plexLibraryName: str
+    plexLibrarySettings: SettingsPlexLibrary
 
     pathLibrary: Path
 
@@ -75,21 +75,22 @@ class PlexLibraryProcessor:
 
         if globalSettingsMgr.settings.plex.libraries is None:
             self._logger.debug("Loading Library list from plex.")
-            globalSettingsMgr.settings.plex.libraries = sorted(
+            globalSettingsMgr.settings.plex.libraries = sorted( 
                 [
-                    str(x.title)
+                    SettingsPlexLibrary(x.title)
                     for x in self.plexServer.library.sections()
                     if x.type == "movie" or x.type == "show"
-                ]
+                ], 
+                key = lambda x: x.name
             )
 
         self._logger.info(
             "Libraries to process: {}".format(
-                ",".join(globalSettingsMgr.settings.plex.libraries)
+                ",".join([ x.name for x in globalSettingsMgr.settings.plex.libraries ])
             )
         )
-        for libraryName in globalSettingsMgr.settings.plex.libraries:
-            self._processLibrary(libraryName)
+        for library in globalSettingsMgr.settings.plex.libraries:
+            self._processLibrary(library)
 
         self.__stats.timerProgram.stop()
         self.__stats.calcTotals()
@@ -112,14 +113,21 @@ class PlexLibraryProcessor:
             session=self.__session,
         )
 
-    def _loadLibrary(self, libraryName: str) -> LibrarySection:
-        self._logger.debug("Loading plex library: {}".format(libraryName))
+    def _loadLibrary(self, library: SettingsPlexLibrary) -> LibrarySection:
+        self._logger.debug("Loading plex library: {}".format(library.name))
 
-        self.plexLibrary = self.plexServer.library.section(libraryName)
-        self.plexLibraryName = libraryName
+        self.plexLibrarySettings = library
+        self.plexLibrary = self.plexServer.library.section(self.plexLibrarySettings.name)
+        
+        self.__stats.initLibrary(self.plexLibrarySettings.name)
+        self.__collectionProcessedCache.update({self.plexLibrarySettings.name: list()})
+        self.__itemProcessedCache.update({self.plexLibrarySettings.name: list()})
+        self.__plexMetaManagerCache.update({self.plexLibrarySettings.name: PlexMetaManagerCache() })
+
+        self.__stats.timerLibraries[self.plexLibrarySettings.name].start()
 
         self.pathLibrary = formatLibraryItemPath(
-            globalSettingsMgr.settings.output, library=self.plexLibrary
+            globalSettingsMgr.settings.output, library=self.plexLibrary, librarySettings=self.plexLibrarySettings
         )
         
         self.pathLibrary.mkdir(parents=True, exist_ok=True)
@@ -135,7 +143,7 @@ class PlexLibraryProcessor:
         if tplFiles is not None:
             for tplFile in tplFiles:
                 if globalSettingsMgr.settings.generate.isFormatEnabled(tplFile.format):
-                    fileName = Path(self.pathLibrary, "{}.{}".format(self.plexLibraryName, tplFile.fileExtension))
+                    fileName = Path(self.pathLibrary, "{}.{}".format(self.plexLibrarySettings.path, tplFile.fileExtension))
 
                     self.templateManager.renderAndSave(
                         tplFile.fileName, fileName, {"library": self.plexLibrary}
@@ -143,34 +151,26 @@ class PlexLibraryProcessor:
 
         if globalSettingsMgr.settings.plexMetaManager.cacheExistingFiles:
             self._logger.debug("Checking for Plex Meta Manager Cache enablement for this library")
-            pmm = globalSettingsMgr.settings.plexMetaManager.getFolderByLibraryName(self.plexLibraryName)
-            if pmm is not None:
+            if self.plexLibrarySettings.pmm_path is not None:
                 self._logger.info("-" * 50)
                 self._logger.info("Loading Plex Meta Manager File Cache")
-                self._logger.debug("Plex Meta Manager Path: {}".format(pmm.path))
-                self.__plexMetaManagerCache[libraryName].processFolder(pmm.path) 
+                self._logger.debug("Plex Meta Manager Path: {}".format(self.plexLibrarySettings.pmm_path))
+                self.__plexMetaManagerCache[self.plexLibrarySettings.name].processFolder(self.plexLibrarySettings.pmm_path) 
                 self._logger.info("-" * 50)
                 
         return self.plexLibrary
 
-    def _processLibrary(self, libraryName: str):
+    def _processLibrary(self, library: SettingsPlexLibrary):
         self._logger.info("-" * 50)
-        self._logger.info("Started Processing Library: '{}'".format(libraryName))
+        self._logger.info("Started Processing Library: '{}'".format(library.name))
 
-        self.__stats.initLibrary(libraryName)
-        self.__collectionProcessedCache.update({libraryName: list()})
-        self.__itemProcessedCache.update({libraryName: list()})
-        self.__plexMetaManagerCache.update({libraryName: PlexMetaManagerCache() })
-
-        self.__stats.timerLibraries[libraryName].start()
-
-        self._loadLibrary(libraryName)
+        self._loadLibrary(library)
 
         self._logger.info("Processing Library Collections")
         collections = self.plexLibrary.collections()
 
-        self.__stats.countsLibraries[libraryName].collections.total = len(collections)
-        self.__stats.countsLibraries[libraryName].collections.processed = 0
+        self.__stats.countsLibraries[self.plexLibrarySettings.name].collections.total = len(collections)
+        self.__stats.countsLibraries[self.plexLibrarySettings.name].collections.processed = 0
 
         for collection in collections:
             try:
@@ -183,9 +183,9 @@ class PlexLibraryProcessor:
         self._logger.info("Processing Library Items")
         items = self.plexLibrary.all()
 
-        self.__stats.countsLibraries[libraryName].items.total = len(items)
-        self.__stats.countsLibraries[libraryName].items.processed = 0
-        self.__stats.countsLibraries[libraryName].calcTotals()
+        self.__stats.countsLibraries[self.plexLibrarySettings.name].items.total = len(items)
+        self.__stats.countsLibraries[self.plexLibrarySettings.name].items.processed = 0
+        self.__stats.countsLibraries[self.plexLibrarySettings.name].calcTotals()
 
         for item in items:
             try:
@@ -193,9 +193,9 @@ class PlexLibraryProcessor:
             except:
                 self._logger.exception("Error Processing Item: {}".format(item.title))
 
-        self.__stats.timerLibraries[libraryName].stop()
+        self.__stats.timerLibraries[self.plexLibrarySettings.name].stop()
 
-        self.__stats.countsLibraries[libraryName].calcTotals()
+        self.__stats.countsLibraries[self.plexLibrarySettings.name].calcTotals()
 
         self._logger.info("-" * 50)        
         self._sortCache()
@@ -204,16 +204,16 @@ class PlexLibraryProcessor:
         #self._saveReport()
 
     def _processCollection(self, itemTitle: str, item):
-        self.__stats.countsLibraries[self.plexLibraryName].collections.processed += 1
+        self.__stats.countsLibraries[self.plexLibrarySettings.name].collections.processed += 1
 
         if PlexItemHelper.isPMMItem(item) or item.childCount == 0:
             self._logger.info(
                 "[{}/{}] Skipping Dynamic/Empty Collecton: {}".format(
                     self.__stats.countsLibraries[
-                        self.plexLibraryName
+                        self.plexLibrarySettings.name
                     ].collections.processed,
                     self.__stats.countsLibraries[
-                        self.plexLibraryName
+                        self.plexLibrarySettings.name
                     ].collections.total,
                     item.title,
                 )
@@ -223,14 +223,14 @@ class PlexLibraryProcessor:
         self._logger.info(
             "[{}/{}] Processing Collection: {}".format(
                 self.__stats.countsLibraries[
-                    self.plexLibraryName
+                    self.plexLibrarySettings.name
                 ].collections.processed,
-                self.__stats.countsLibraries[self.plexLibraryName].collections.total,
+                self.__stats.countsLibraries[self.plexLibrarySettings.name].collections.total,
                 itemTitle,
             )
         )
 
-        pmmItem = self.__plexMetaManagerCache[self.plexLibraryName].collectionItem_to_dict(item.title)
+        pmmItem = self.__plexMetaManagerCache[self.plexLibrarySettings.name].collectionItem_to_dict(item.title)
         
         self._addCollectionToProcessedCache(item, pmmItem)
 
@@ -274,10 +274,10 @@ class PlexLibraryProcessor:
 
         childItems = item.items()
         if len(childItems) > 0:
-            self.__stats.countsLibraries[self.plexLibraryName].items.total = len(
+            self.__stats.countsLibraries[self.plexLibrarySettings.name].items.total = len(
                 childItems
             )
-            self.__stats.countsLibraries[self.plexLibraryName].items.processed = 0
+            self.__stats.countsLibraries[self.plexLibrarySettings.name].items.processed = 0
 
             self._processMetadata(collection=item, items=childItems)
 
@@ -307,15 +307,15 @@ class PlexLibraryProcessor:
         itemsWithExtras: list[dict] = []
         
         for item in items:
-            self.__stats.countsLibraries[self.plexLibraryName].items.processed += 1
+            self.__stats.countsLibraries[self.plexLibrarySettings.name].items.processed += 1
 
             if PlexItemHelper.isPMMItem(item):
                 self._logger.info(
                     "[{}/{}] Skipping '{}': {}. Dynamic item".format(
                         self.__stats.countsLibraries[
-                            self.plexLibraryName
+                            self.plexLibrarySettings.name
                         ].items.processed,
-                        self.__stats.countsLibraries[self.plexLibraryName].items.total,
+                        self.__stats.countsLibraries[self.plexLibrarySettings.name].items.total,
                         item.type,
                         PlexItemHelper.formatItemTitle(item),
                     )
@@ -324,9 +324,9 @@ class PlexLibraryProcessor:
                 self._logger.info(
                     "[{}/{}] Skipping {}: {}. Already Processed".format(
                         self.__stats.countsLibraries[
-                            self.plexLibraryName
+                            self.plexLibrarySettings.name
                         ].items.processed,
-                        self.__stats.countsLibraries[self.plexLibraryName].items.total,
+                        self.__stats.countsLibraries[self.plexLibrarySettings.name].items.total,
                         item.type,
                         PlexItemHelper.formatItemTitle(item),
                     )
@@ -335,15 +335,15 @@ class PlexLibraryProcessor:
                 self._logger.info(
                     "[{}/{}] Processing {}: {}".format(
                         self.__stats.countsLibraries[
-                            self.plexLibraryName
+                            self.plexLibrarySettings.name
                         ].items.processed,
-                        self.__stats.countsLibraries[self.plexLibraryName].items.total,
+                        self.__stats.countsLibraries[self.plexLibrarySettings.name].items.total,
                         item.type,
                         PlexItemHelper.formatItemTitle(item),
                     )
                 )
 
-                pmmItem = self.__plexMetaManagerCache[self.plexLibraryName].metadataItem_to_dict(item.title, item.year)
+                pmmItem = self.__plexMetaManagerCache[self.plexLibrarySettings.name].metadataItem_to_dict(item.title, item.year)
 
                 self._addItemToProcessedCache(collection, item, pmmItem)
 
@@ -389,7 +389,7 @@ class PlexLibraryProcessor:
         it = next(
             (
                 x
-                for x in self.__collectionProcessedCache[self.plexLibraryName]
+                for x in self.__collectionProcessedCache[self.plexLibrarySettings.name]
                 if x["title"] == item.title
             ),
             None,
@@ -398,8 +398,8 @@ class PlexLibraryProcessor:
         return it is not None
 
     def _addCollectionToProcessedCache(self, item, pmmItem):
-        if self.plexLibraryName not in self.__collectionProcessedCache.keys():
-            self.__collectionProcessedCache[self.plexLibraryName] = []
+        if self.plexLibrarySettings.name not in self.__collectionProcessedCache.keys():
+            self.__collectionProcessedCache[self.plexLibrarySettings.name] = []
 
         if not self._isCollectionProcessed(item):
             tpdbEntry = {
@@ -409,13 +409,13 @@ class PlexLibraryProcessor:
                 "pmm": pmmItem if pmmItem is not None else {},
             }
 
-            self.__collectionProcessedCache[self.plexLibraryName].append(tpdbEntry)
+            self.__collectionProcessedCache[self.plexLibrarySettings.name].append(tpdbEntry)
 
     def _isItemProcessed(self, item) -> bool:
         it = next(
             (
                 x
-                for x in self.__itemProcessedCache[self.plexLibraryName]
+                for x in self.__itemProcessedCache[self.plexLibrarySettings.name]
                 if x["title"] == PlexItemHelper.formatItemTitle(item)
             ),
             None,
@@ -426,8 +426,8 @@ class PlexLibraryProcessor:
     def _addItemToProcessedCache(self, collection, item, pmmItem):
         pi = PlexVideoHelper(item)
 
-        if self.plexLibraryName not in self.__itemProcessedCache.keys():
-            self.__itemProcessedCache[self.plexLibraryName] = []
+        if self.plexLibrarySettings.name not in self.__itemProcessedCache.keys():
+            self.__itemProcessedCache[self.plexLibrarySettings.name] = []
 
         if not self._isItemProcessed(item):
             tpdbEntry = {
@@ -439,16 +439,16 @@ class PlexLibraryProcessor:
                 "pmm": pmmItem if pmmItem is not None else {},
             }
 
-            self.__itemProcessedCache[self.plexLibraryName].append(tpdbEntry)
+            self.__itemProcessedCache[self.plexLibrarySettings.name].append(tpdbEntry)
 
     def _sortCache(self):
-        self.__collectionProcessedCache[self.plexLibraryName] = sorted(
-            self.__collectionProcessedCache[self.plexLibraryName],
+        self.__collectionProcessedCache[self.plexLibrarySettings.name] = sorted(
+            self.__collectionProcessedCache[self.plexLibrarySettings.name],
             key=lambda x: x["title"],
         )
         
-        self.__itemProcessedCache[self.plexLibraryName] = sorted(
-            self.__itemProcessedCache[self.plexLibraryName], key=lambda x: "{}:{}".format(x["collection"], x["title"])
+        self.__itemProcessedCache[self.plexLibrarySettings.name] = sorted(
+            self.__itemProcessedCache[self.plexLibrarySettings.name], key=lambda x: "{}:{}".format(x["collection"], x["title"])
         )
 
     def _saveCollectionReport(self):
@@ -483,17 +483,17 @@ class PlexLibraryProcessor:
                         self.templateManager.renderAndSave(
                             tplFile.fileName, fileName, tplArgs={
                                                                 "library": jsonpickle.dumps(self.plexLibrary, unpicklable=False),
-                                                                "items": self.__collectionProcessedCache[self.plexLibraryName],
+                                                                "items": self.__collectionProcessedCache[self.plexLibrarySettings.name],
                                                                 "stats": json.loads(
                                                                     str(
                                                                         jsonpickle.dumps(
-                                                                            self.__stats.countsLibraries[self.plexLibraryName],
+                                                                            self.__stats.countsLibraries[self.plexLibrarySettings.name],
                                                                             unpicklable=False,
                                                                         )
                                                                     )
                                                                 ),
                                                                 "processingTime": self.__stats.timerLibraries[
-                                                                    self.plexLibraryName
+                                                                    self.plexLibrarySettings.name
                                                                 ].to_dict()
                                                             }
                         )
@@ -536,17 +536,17 @@ class PlexLibraryProcessor:
                         self.templateManager.renderAndSave(
                             tplFile.fileName, fileName, tplArgs={
                                                                 "library": jsonpickle.dumps(self.plexLibrary, unpicklable=False),
-                                                                "items": self.__itemProcessedCache[self.plexLibraryName],
+                                                                "items": self.__itemProcessedCache[self.plexLibrarySettings.name],
                                                                 "stats": json.loads(
                                                                     str(
                                                                         jsonpickle.dumps(
-                                                                            self.__stats.countsLibraries[self.plexLibraryName],
+                                                                            self.__stats.countsLibraries[self.plexLibrarySettings.name],
                                                                             unpicklable=False,
                                                                         )
                                                                     )
                                                                 ),
                                                                 "processingTime": self.__stats.timerLibraries[
-                                                                    self.plexLibraryName
+                                                                    self.plexLibrarySettings.name
                                                                 ].to_dict(),                        
                                                             }
                         )
@@ -589,18 +589,18 @@ class PlexLibraryProcessor:
                         self.templateManager.renderAndSave(
                             tplFile.fileName, fileName, tplArgs={
                                                                 "library": jsonpickle.dumps(self.plexLibrary, unpicklable=False),
-                                                                "collections": self.__collectionProcessedCache[self.plexLibraryName],
-                                                                "items": self.__itemProcessedCache[self.plexLibraryName],
+                                                                "collections": self.__collectionProcessedCache[self.plexLibrarySettings.name],
+                                                                "items": self.__itemProcessedCache[self.plexLibrarySettings.name],
                                                                 "stats": json.loads(
                                                                     str(
                                                                         jsonpickle.dumps(
-                                                                            self.__stats.countsLibraries[self.plexLibraryName],
+                                                                            self.__stats.countsLibraries[self.plexLibrarySettings.name],
                                                                             unpicklable=False,
                                                                         )
                                                                     )
                                                                 ),
                                                                 "processingTime": self.__stats.timerLibraries[
-                                                                    self.plexLibraryName
+                                                                    self.plexLibrarySettings.name
                                                                 ].to_dict(),                        
                                                             }
                         )

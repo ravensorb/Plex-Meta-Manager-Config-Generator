@@ -11,7 +11,7 @@ from plexapi.video import Video, Movie, Show
 from plexapi.server import PlexServer
 import re
 
-from pmm_cfg_gen.utils.settings_utils_v1 import globalSettingsMgr
+from pmm_cfg_gen.utils.settings_utils_v1 import SettingsPlexLibrary, globalSettingsMgr
 
 ###################################################################################################
 
@@ -117,7 +117,7 @@ class PlexItemHelper:
         return title.replace("/", "-").replace("\\", "-").replace(":", "-").replace("*", "-").replace("?", "-").replace("\"", "-").replace("<", "-").replace(">", "-").replace("|", "-")
 
     @classmethod
-    def formatString(cls, formatString: str, library : LibrarySection | None = None, collection : Collection | None = None, item : Video | None = None, pmm : dict | None = None, cleanTitleStrings : bool = False) -> str:
+    def formatString(cls, formatString: str, library : LibrarySection | None = None, collection : Collection | None = None, item : Video | None = None, pmm : dict | None = None, librarySettings : SettingsPlexLibrary | None = None, cleanTitleStrings : bool = False) -> str:
         """
         The format string to format. This is a string with placeholders to be substituted.
         
@@ -130,10 +130,15 @@ class PlexItemHelper:
         """
 
         result = formatString
+
+        if librarySettings is not None:
+            result = result.replace("{{library.path}}", librarySettings.path) if librarySettings.path else result
         
         if library is not None:
             result = result.replace("{{library.title}}", cls.cleanString(str(library.title)) if cleanTitleStrings else library.title)
             result = result.replace("{{library.type}}", library.type) if library.type else result
+            # if no librarySettings.path defined lets use the library.title as a fall back
+            result = result.replace("{{library.path}}", cls.cleanString(str(library.title)) if cleanTitleStrings else library.title)
 
         if collection is not None:
             result = result.replace("{{collection.title}}", cls.cleanString(collection.title) if cleanTitleStrings else collection.title)

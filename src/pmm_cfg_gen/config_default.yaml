@@ -3,13 +3,10 @@ plex:
   serverUrl: ${PLEX_SERVER:-https://plex.ravenwolf.org:32400}
   token: ${PLEX_TOKEN}
 #   library:
-#   - Library1
-#   - Library2
+#   - { name: Library1, path: "lib1", pmm_path: "" }
+#   - { name: Library2 }
 # plexMetaManager:
 #   cacheExistingFiles: false
-#   folders:
-#     - library: Movies
-#       path: /path/to/pmm/library
 thePosterDatabase:
   enablePro: False
   searchUrlPro: https://theposterdb.com/search/advanced/results
@@ -72,7 +69,7 @@ templates:
   # - { type: "report.any", format: "html", file: "report.html.j2" }
 output:
   path: "./data"
-  pathFormat: "{{library.title}}"
+  pathFormat: "{{library.path}}"
   fileNameFormat:
     collections: "{{universe}} - {{collection.title}}"
     metadata: "{{universe}} - {{item.title}} ({{item.year}}) [{{item.editionTitle}}]"

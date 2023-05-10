@@ -32,7 +32,7 @@ def writeFile(fileName: str | Path, data: str):
         f.write(data)
 
 
-def formatLibraryItemPath(output: SettingsOutput, library=None, collection=None, item=None, pmm=None) -> Path:
+def formatLibraryItemPath(output: SettingsOutput, library=None, collection=None, item=None, pmm=None, librarySettings=None) -> Path:
     """
      Formats path with library and item information. This is used to make sure paths are formatted correctly when saving a library or item
      
@@ -42,6 +42,6 @@ def formatLibraryItemPath(output: SettingsOutput, library=None, collection=None,
      
      @return Path object that is ready to be saved to a file or None if there is no path to the
     """
-    strPath = PlexItemHelper.formatString(output.pathFormat, library=library, collection=collection, item=item, pmm=pmm, cleanTitleStrings=True)
+    strPath = PlexItemHelper.formatString(output.pathFormat, library=library, collection=collection, item=item, pmm=pmm, librarySettings=librarySettings, cleanTitleStrings=True)
 
     return Path(output.path, strPath).resolve()
