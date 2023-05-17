@@ -37,6 +37,7 @@ templates:
   - { type: "collection.report", format: "yaml", file: "report.collection.yaml.j2" }
   - { type: "collection.report", format: "html", file: "report.collection.html.j2" }
   - { type: "collection.report", format: "json", file: "report.collection.json.j2", subFolder: "json" }
+  - { type: "collection.template", "format": "yaml", "file": "template.collection.yaml.j2" }
   metadata:
   - { type: "metadata.movie", format: "yaml", file: "movie.metadata.yaml.j2", defaultTemplate: "tplTMDBCollection"  }
   - { type: "metadata.movie", format: "html", file: "movie.metadata.html.j2" }
@@ -69,13 +70,17 @@ templates:
   # - { type: "report.any", format: "html", file: "report.html.j2" }
 output:
   path: "./data"
+  
   pathFormat: "{{library.path}}"
+  sharedTemplatePathFormat: "{{library.path}}/_templates"
+
   fileNameFormat:
     collections: "{{universe}} - {{collection.title}}"
     metadata: "{{universe}} - {{item.title}} ({{item.year}}) [{{item.editionTitle}}]"
     collectionsReport: "{{library.title}} - Collection Report"
     metadataReport: "{{library.title}} - Metadata Report"
     report: "{{library.title}} - Report"
+    template: "template"
 generate:
   types:
   - library.any
@@ -83,6 +88,7 @@ generate:
   # - collection.music
   - collection.show
   - collection.report
+  - collection.template
   - metadata.movie
   # - metadata.music
   - metadata.show

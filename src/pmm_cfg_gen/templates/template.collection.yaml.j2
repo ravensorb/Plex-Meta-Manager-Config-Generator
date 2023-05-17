@@ -1,0 +1,46 @@
+templates:
+  tplCommonBase:
+    optional:
+      - poster
+    move_prefix: The
+    sync_mode: sync
+    url_poster: <<poster>>
+
+  tplCommonCollection:
+    default:
+      sort_prefix: ""
+      sort_order: ""
+      sort_separator: ""
+    optional:
+      - label
+    label: "PMM-U-<<label>>"
+    item_label: "PMM-U-<<label>>"
+    collection_order: release
+    sort_title: <<sort_prefix>><<sort_separator>><<sort_order>><<sort_separator>><<collection_name>>
+
+  tplTVDBCollection:
+    optional:
+      - list
+      - show
+      - movie
+    tvdb_list: https://www.thetvdb.com/lists/<<list>>
+    tvdb_list_details: https://www.thetvdb.com/lists/<<list>>
+    tvdb_movie: <<movie>>
+    tvdb_movie_details: <<movie>>
+    tvdb_show: <<show>>
+    tvdb_show_details: <<show>>
+
+  tplTMDBCollection:
+    optional:
+      - collection
+      - list
+      - movie
+      - show
+    tmdb_collection: <<collection>>
+    tmdb_collection_details: <<collection>>
+    tmdb_list: <<list>>
+    tmdb_list_details: <<list>>
+    tmdb_movie: <<movie>>
+    tmdb_movie_details: <<movie>>
+    tmdb_show: <<show>>
+    tmdb_show_details: <<show>>

@@ -23,7 +23,7 @@ class PlexMetaManagerCache:
         self.__overlayCache = {}
 
     def processFolder(self, path):
-        self._logger.info("Processing Folder: '{}'".format(path))
+        self._logger.info("Processing Folder: '{}'".format(path)) 
 
         for root, dirs, files in os.walk(path):
                 for file in files:
@@ -178,7 +178,7 @@ class PlexMetaManagerCache:
         self._logger.debug("Getting Poster Urls from metadata: '{}'".format(metadataName))
 
         result = {}
-        if "seasons" in data:
+        if "seasons" in data and data["seasons"] is not None and len(data["seasons"]) > 0:
             for k in data["seasons"]:
                 result[k] = { "poster": self.__getPosterUrlFromItem(data["seasons"][k]) }
 

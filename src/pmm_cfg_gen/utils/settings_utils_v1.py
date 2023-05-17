@@ -29,9 +29,7 @@ class SettingsTemplateLibraryTypeEnum(Enum):
     MUSIC = "music"
     REPORT = "report"
     SHOW = "show"
-    COLLECTION_REPORT = "collection.report"
-    MOVIE_REPORT = "movie.report"
-    MUSIC_REPORT = "music.report"
+    TEMPLATE = "template"
 
 
 class SettingsGenerate:
@@ -74,24 +72,28 @@ class SettingsOutputFileNames:
     collectionsReport: str
     metadataReport: str
     report: str
+    template: str
 
-    def __init__(self, collections: str, metadata: str, collectionsReport: str, metadataReport: str, report: str) -> None:
+    def __init__(self, collections: str, metadata: str, collectionsReport: str, metadataReport: str, report: str, template: str) -> None:
         self.collections = collections
         self.metadata = metadata
         self.collectionsReport = collectionsReport
         self.metadataReport = metadataReport
         self.report = report
+        self.template = template
 
 
 class SettingsOutput:
     path: str
     pathFormat: str
+    sharedTemplatePathFormat: str
     fileNameFormat: SettingsOutputFileNames
     overwrite: bool
 
-    def __init__(self, path: str, pathFormat: str, overwrite : bool, fileNameFormat: SettingsOutputFileNames) -> None:
+    def __init__(self, path: str, pathFormat: str, sharedTemplatePathFormat: str, overwrite : bool, fileNameFormat: SettingsOutputFileNames) -> None:
         self.path = path
         self.pathFormat = pathFormat
+        self.sharedTemplatePathFormat = sharedTemplatePathFormat
         self.fileNameFormat = fileNameFormat
         self.overwrite = overwrite
 
@@ -134,34 +136,11 @@ class SettingsPlexServer:
         )
                     
 
-# class SettingsPlexMetaManagerFolder:
-#     library: str
-#     path: str
-
-#     def __init__(self, library: str, path: str) -> None:
-#         self.library = library
-#         self.path = path
-
-#     @classmethod
-#     def from_dict(cls, data: dict):
-#         return cls(
-#             data["library"],
-#             data["path"]
-#         )
-
-
 class SettingsPlexMetaManager:
     cacheExistingFiles: bool
-    # folders: List[SettingsPlexMetaManagerFolder]
 
-    def __init__(self, cacheExistingFiles: bool) -> None: # , folders: List[SettingsPlexMetaManagerFolder]) -> None:
+    def __init__(self, cacheExistingFiles: bool) -> None: 
         self.cacheExistingFiles = cacheExistingFiles
-        # self.folders = folders
-
-    # def getFolderByLibraryName(self, libraryName: str) -> SettingsPlexMetaManagerFolder | None:
-    #     result = next((x for x in self.folders if x.library.strip() == libraryName.strip()), None)
-
-    #     return result
 
     @classmethod
     def from_dict(cls, data: dict):
@@ -240,9 +219,7 @@ class SettingsTemplateGroups:
         
         raise ValueError("Unknown template group name: '{}".format(name))
 
-    def getTemplateByGroupAndLibraryType(
-        self, group: str, libraryType: SettingsTemplateLibraryTypeEnum | str
-    ) -> List[SettingsTemplateFile] | None:
+    def getTemplateByGroupAndLibraryType(self, group: str, libraryType: SettingsTemplateLibraryTypeEnum | str ) -> List[SettingsTemplateFile] | None:
         if isinstance(libraryType, SettingsTemplateLibraryTypeEnum):
             libraryType = str(libraryType.value)
 
@@ -303,6 +280,13 @@ class SettingsThePosterDatabase:
         self.dbAssetUrl = dbAssetUrl
 
 
+class SettingsRunTime:
+    currentWorkingPath: str
+    currentWorkingPathRelative: str
+
+    def __init__(self, currentWorkingPath: str) -> None:
+        self.currentWorkingPath = currentWorkingPath
+
 class Settings:
     version: str
     plex: SettingsPlexServer
@@ -313,8 +297,9 @@ class Settings:
     templates: SettingsTemplateGroups
     output: SettingsOutput
     generate: SettingsGenerate
+    runtime: SettingsRunTime
 
-    def __init__(self, version: str, plex: SettingsPlexServer, plexMetaManager: SettingsPlexMetaManager, thePosterDatabase: SettingsThePosterDatabase, theMovieDatabase: SettingsTheMovieDatabase,  theTvDatabase : SettingsTheTvDatabase, templates: SettingsTemplateGroups, output: SettingsOutput, generate: SettingsGenerate) -> None:
+    def __init__(self, version: str, plex: SettingsPlexServer, plexMetaManager: SettingsPlexMetaManager, thePosterDatabase: SettingsThePosterDatabase, theMovieDatabase: SettingsTheMovieDatabase,  theTvDatabase : SettingsTheTvDatabase, templates: SettingsTemplateGroups, output: SettingsOutput, generate: SettingsGenerate, runtime: SettingsRunTime) -> None:
         self.version = version
         self.plex = plex
         self.plexMetaManager = plexMetaManager
@@ -324,6 +309,7 @@ class Settings:
         self.templates = templates
         self.output = output
         self.generate = generate
+        self.runtime = runtime
 
 #######################################################################
 
@@ -413,6 +399,7 @@ class SettingsManager:
             output=SettingsOutput(
                 path=str(self._config["output"]["path"].as_str()),
                 pathFormat=str(self._config["output"]["pathFormat"].as_str()),
+                sharedTemplatePathFormat=str(self._config["output"]["sharedTemplatePathFormat"].as_str()),
                 overwrite=bool(self._config["output"]["overwrite"].get(confuse.Optional(False))),
                 fileNameFormat=SettingsOutputFileNames(
                     collections=str(
@@ -436,6 +423,7 @@ class SettingsManager:
                         )
                     ),
                     report=str(self._config["output"]["fileNameFormat"]["report"].get(confuse.Optional("{{library.title}} -Report"))),
+                    template=str(self._config["output"]["fileNameFormat"]["template"].get(confuse.Optional("template"))),
                 )
             ),
             generate=SettingsGenerate(
@@ -443,6 +431,9 @@ class SettingsManager:
                 formats=self._config["generate"]["formats"].get(confuse.Optional(list)),  # type: ignore
             ),
             plexMetaManager=SettingsPlexMetaManager.from_dict(self._config["plexMetaManager"].get(confuse.Optional(dict))),  # type: ignore
+            runtime=SettingsRunTime(
+                currentWorkingPath=os.path.curdir
+            ),
         )
 
         self._logger.debug("Active Settings:")

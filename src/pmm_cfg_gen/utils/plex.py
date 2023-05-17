@@ -129,8 +129,11 @@ class PlexLibraryProcessor:
         self.pathLibrary = formatLibraryItemPath(
             globalSettingsMgr.settings.output, library=self.plexLibrary, librarySettings=self.plexLibrarySettings
         )
-        
+
         self.pathLibrary.mkdir(parents=True, exist_ok=True)
+
+        globalSettingsMgr.settings.runtime.currentWorkingPath = str(self.pathLibrary)
+        globalSettingsMgr.settings.runtime.currentWorkingPathRelative = str(self.pathLibrary.relative_to(Path(globalSettingsMgr.settings.output.path).resolve()))
 
         self._logger.debug("Library Path: '{}'".format(self.pathLibrary))
 
@@ -171,6 +174,8 @@ class PlexLibraryProcessor:
 
         self.__stats.countsLibraries[self.plexLibrarySettings.name].collections.total = len(collections)
         self.__stats.countsLibraries[self.plexLibrarySettings.name].collections.processed = 0
+
+        self._saveCollectionTemplates()
 
         for collection in collections:
             try:
@@ -456,6 +461,48 @@ class PlexLibraryProcessor:
         self.__itemProcessedCache[self.plexLibrarySettings.name] = sorted(
             self.__itemProcessedCache[self.plexLibrarySettings.name], key=lambda x: "{}:{}".format(x["collection"], x["title"])
         )
+
+    def _saveCollectionTemplates(self):
+        if not globalSettingsMgr.settings.generate.isTypeEnabled("collection.template"):
+            self._logger.debug("Skipping Collection Templates...")
+            return
+
+        self._logger.info("Saving Collection Templates...")
+
+        tplFiles = globalSettingsMgr.settings.templates.getTemplateByGroupAndLibraryType("collection", SettingsTemplateLibraryTypeEnum.TEMPLATE)
+        if tplFiles is None:
+            self._logger.warn("No Collection Templates for type '{}' specifed".format(self.plexLibrary.type))
+
+            return
+                    
+        self._logger.debug(
+            "Template Files for Template Type '{}': {}".format(self.plexLibrary.type, jsonpickle.dumps(tplFiles, unpicklable=False))
+        )
+
+        fileNameBase = PlexItemHelper.formatString(globalSettingsMgr.settings.output.fileNameFormat.template, library=self.plexLibrary, collection=None, item=None, cleanTitleStrings=True)
+        
+        for tplFile in tplFiles:
+            try:
+                if globalSettingsMgr.settings.generate.isFormatEnabled(tplFile.format) and globalSettingsMgr.settings.generate.isTypeEnabled(tplFile.type):
+                    
+                    if tplFile.subFolder is not None:
+                        fileName = Path(self.pathLibrary, "_templates", "{}.{}".format(fileNameBase, tplFile.fileExtension))
+                    else: 
+                        fileName = Path(self.pathLibrary, "_templates", "{}.{}".format(fileNameBase, tplFile.fileExtension))
+
+                    if not os.path.exists(fileName) or globalSettingsMgr.settings.output.overwrite:
+                        self.templateManager.renderAndSave(
+                            tplFile.fileName, fileName, tplArgs={
+                                                                "library": self.plexLibrary,
+                                                                # "settings": globalSettingsMgr.settings
+                                                            }
+                        )
+                    else:
+                        self._logger.warn("  Template File Name '{}' Exists. Skipping...".format(fileNameBase))
+                else:
+                    self._logger.debug("  Generating format '{}' for Template is not enabled. Skipping...".format(tplFile.format))
+            except:
+                self._logger.exception("Failed generating collection template: '{}'".format(tplFile.fileName))
 
     def _saveCollectionReport(self):
         if not globalSettingsMgr.settings.generate.isTypeEnabled("report.any"):

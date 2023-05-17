@@ -1,12 +1,17 @@
 collections:
   "{{ item.metadata.title }}":
-    {%- set lstCollection = item.metadata | getTmDbCollectionId(true) | concat(item.pmm.collection) | unique | join(", ") | default("") %}
-    {%- set lstList = "" %}
+    {%- set lstCollection = item.pmm.collection | unique | join(", ") %}
+    {%- set lstList = item.pmm.list | unique | join(", ") | default("") %}
     {%- set lstShow = item.metadata | getCollectionGuidsByName("tmdb") | concat(item.pmm.movie) | unique | join(", ") %}
     {%- set lstMovie = "" %}
     {%- set lstLabels = item.metadata | getNamedCollectionLabels | concat(item.pmm.label) | unique | join(", ") %}
-    variables: { {% if lstLabels %}label: "{{ lstLabels }}", {% endif %}{% if item.pmm.sort.prefix %}sort_prefix: "{{item.pmm.sort.prefix}}", {% endif %}{% if item.pmm.sort.order %}sort_order: "{{ item.pmm.sort.order }}", {% endif %}{% if item.pmm.sort.separator %}sort_separator: "{{ item.pmm.sort.separator }}", {% endif %}{% if lstCollection | length > 0 %}collection: "{{ lstCollection }}", {% endif %}{% if lstList | length > 0 %}list: "{{ lstList }}", {% endif %}{% if lstMovie | length > 0 %}movie: "{{ lstMovie }}", {% endif %}{% if lstShow | length > 0 %}show: "{{ lstShow }}", {% endif %}{% if settings.thePosterDatabase.dbAssetUrl %}poster: {{ item.pmm.poster | default(settings.thePosterDatabase.dbAssetUrl, True) }}{% endif %} }
-    template: [ { name: tplCommonBase }, { name: tplCommonCollection }, { name: tplTMDBCollection } ]
+    variables: { {% if lstLabels %}label: "{{ lstLabels }}", {% endif %}{% if item.pmm and item.pmm.sort.prefix %}sort_prefix: "{{item.pmm.sort.prefix}}", {% endif %}{% if item.pmm and item.pmm.sort.order %}sort_order: "{{ item.pmm.sort.order }}", {% endif %}{% if item.pmm and item.pmm.sort.separator %}sort_separator: "{{ item.pmm.sort.separator }}", {% endif %}{% if lstMovie | length > 0 %}movie: "{{ lstMovie }}", {% endif %}{% if lstShow | length > 0 %}show: "{{ lstShow }}", {% endif %}{% if settings.thePosterDatabase.dbAssetUrl %}poster: {{ item.pmm.poster | default(settings.thePosterDatabase.dbAssetUrl, True) }}{% endif %} }
+    template: [ 
+      { name: tplCommonBase }, 
+      { name: tplCommonCollection }, 
+      { name: tplTMDBCollection{% if lstCollection | length > 0 %}, collection: "{{ lstCollection }}"{% endif %} }, 
+      {%- if lstList | length > 0 %}{ name: tplTVDBCollection, list: "{{ lstList }}" }{% endif %}
+    ]
     {%- if item.metadata.summary %}
     summary: |
       {{ item.metadata.summary.rstrip() }}{%- endif %}
@@ -25,9 +30,9 @@ collections:
 ########################################################################################################################
 ########################################################################################################################
 
-external_templates:
+{# external_templates:
   pmm: templates
-
+  file: {{ settings.runtime.currentWorkingPathRelative }}/_templates/templates.yaml #}
 templates:
   tplCommonBase:
     optional:
@@ -53,22 +58,24 @@ templates:
       - list
       - show
       - movie
-    tvdb_show: <<show>>
-    tvdb_show_details: <<show>>
     tvdb_list: https://www.thetvdb.com/lists/<<list>>
     tvdb_list_details: https://www.thetvdb.com/lists/<<list>>
     tvdb_movie: <<movie>>
     tvdb_movie_details: <<movie>>
+    tvdb_show: <<show>>
+    tvdb_show_details: <<show>>
 
   tplTMDBCollection:
     optional:
       - collection
       - list
+      - movie
       - show
     tmdb_collection: <<collection>>
     tmdb_collection_details: <<collection>>
     tmdb_list: <<list>>
     tmdb_list_details: <<list>>
+    tmdb_movie: <<movie>>
+    tmdb_movie_details: <<movie>>
     tmdb_show: <<show>>
     tmdb_show_details: <<show>>
-
