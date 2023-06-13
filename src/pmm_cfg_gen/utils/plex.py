@@ -213,45 +213,65 @@ class PlexLibraryProcessor:
 
         if PlexItemHelper.isPMMItem(item) or item.childCount == 0:
             self._logger.info(
-                "[{}/{}] Skipping Dynamic/Empty Collecton: {}".format(
+                "[{}/{}] Skipping {}: '{}'. [Reason: Dynamic/Empty Collecton]".format(
                     self.__stats.countsLibraries[
                         self.plexLibrarySettings.name
                     ].collections.processed,
                     self.__stats.countsLibraries[
                         self.plexLibrarySettings.name
                     ].collections.total,
+                    item.type,
                     item.title,
                 )
             )
             return
 
+        pmmItem = self.__plexMetaManagerCache[self.plexLibrarySettings.name].collectionItem_to_dict(item.title)
+
+        if pmmItem is not None and self.plexLibrarySettings.pmm_delta is True:
+            self.__stats.countsLibraries[self.plexLibrarySettings.name].collections.skipped += 1
+
+            self._logger.info(
+                "[{}/{}] Skipping {}: '{}'. [Reason: Plex Meta Manager Cache Hit. Delta only requested]".format(
+                    self.__stats.countsLibraries[
+                        self.plexLibrarySettings.name
+                    ].collections.processed,
+                    self.__stats.countsLibraries[
+                        self.plexLibrarySettings.name
+                    ].collections.total,
+                    item.type,
+                    item.title,
+                )
+            )
+            
+            return
+        
         self._logger.info(
-            "[{}/{}] Processing Collection: {}".format(
+            "[{}/{}] Processing {}: '{}'".format(
                 self.__stats.countsLibraries[
                     self.plexLibrarySettings.name
                 ].collections.processed,
                 self.__stats.countsLibraries[self.plexLibrarySettings.name].collections.total,
+                item.type,
                 itemTitle,
             )
         )
 
-        pmmItem = self.__plexMetaManagerCache[self.plexLibrarySettings.name].collectionItem_to_dict(item.title)
-        
         self._addCollectionToProcessedCache(item, pmmItem)
 
         tplFiles = globalSettingsMgr.settings.templates.getTemplateByGroupAndLibraryType("collection", self.plexLibrary.type)
         if tplFiles is None:
-            self._logger.warn("No Collection Templates for type '{}' specifed".format(self.plexLibrary.type))
+            self._logger.warn("\tNo Collection Templates for type '{}' specifed".format(self.plexLibrary.type))
 
             return
 
         self._logger.debug(
-            "Template Files for Collection Type '{}': {}".format(self.plexLibrary.type, jsonpickle.dumps(tplFiles, unpicklable=False))
+            "\tTemplate Files for Collection Type '{}': {}".format(self.plexLibrary.type, jsonpickle.dumps(tplFiles, unpicklable=False))
         )
 
         fileNameBase = PlexItemHelper.formatString(globalSettingsMgr.settings.output.fileNameFormat.collections, library=self.plexLibrary, collection=item, item=None, pmm=pmmItem, cleanTitleStrings=True)
 
-        self._logger.debug("Base FileName: {}".format(fileNameBase))
+        self._logger.debug("\tBase FileName: {}".format(fileNameBase))
 
         for tplFile in tplFiles:
             try:
@@ -273,11 +293,11 @@ class PlexLibraryProcessor:
                             } 
                         )
                     else:
-                        self._logger.warn("  Collection File Name '{}' Exists. Skipping...".format(fileNameBase))
+                        self._logger.warn("\tCollection File Name '{}' Exists. Skipping...".format(fileNameBase))
                 else:
-                    self._logger.debug("  Generating format '{}' for Collections is not enabled. Skipping...".format(tplFile.format))
+                    self._logger.debug("\tGenerating format '{}' for Collections is not enabled. Skipping...".format(tplFile.format))
             except:
-                self._logger.exception("Error Processing Collection Template: {}".format(tplFile.fileName))
+                self._logger.exception("\tError Processing Collection Template: {}".format(tplFile.fileName))
 
         childItems = item.items()
         if len(childItems) > 0:
@@ -300,11 +320,16 @@ class PlexLibraryProcessor:
             "Template Files for Metadata Type '{}': {}".format(self.plexLibrary.type, jsonpickle.dumps(tplFiles, unpicklable=False))
         )
 
+        itemName: str = ""
         if collection is not None:
+            itemName=collection.title
+            
             pmmItem = self.__plexMetaManagerCache[self.plexLibrarySettings.name].collectionItem_to_dict(collection.title)
             
             fileNameBase = PlexItemHelper.formatString(globalSettingsMgr.settings.output.fileNameFormat.collections, library=self.plexLibrary, collection=collection, item=None, pmm=pmmItem, cleanTitleStrings=True)
         elif len(items) == 1 and isinstance(items[0], Video):
+            itemName=items[0].title
+            
             pmmItem = self.__plexMetaManagerCache[self.plexLibrarySettings.name].metadataItem_to_dict(items[0].title)
             
             fileNameBase = PlexItemHelper.formatString(globalSettingsMgr.settings.output.fileNameFormat.metadata, library=self.plexLibrary, collection=collection, item=items[0], pmm=pmmItem, cleanTitleStrings=True)
@@ -312,7 +337,7 @@ class PlexLibraryProcessor:
             self._logger.error("Invalid item attempted to be processed: {}".format(items))
 
             return
-
+      
         self._logger.debug("Base FileName: {}".format(fileNameBase))
 
         itemsWithExtras: list[dict] = []
@@ -320,9 +345,23 @@ class PlexLibraryProcessor:
         for item in items:
             self.__stats.countsLibraries[self.plexLibrarySettings.name].items.processed += 1
 
-            if PlexItemHelper.isPMMItem(item):
+            if pmmItem is not None and self.plexLibrarySettings.pmm_delta is True:
                 self._logger.info(
-                    "[{}/{}] Skipping '{}': {}. Dynamic item".format(
+                    "[{}/{}] Skipping {}: '{}'. [Reason: Plex Meta Manager Cache Hit. Delta only requested]".format(
+                        self.__stats.countsLibraries[
+                            self.plexLibrarySettings.name
+                        ].items.processed,
+                        self.__stats.countsLibraries[self.plexLibrarySettings.name].items.total,
+                        item.type,
+                        PlexItemHelper.formatItemTitle(item),
+                    )
+                )
+
+                self.__stats.countsLibraries[self.plexLibrarySettings.name].items.skipped += 1
+
+            elif PlexItemHelper.isPMMItem(item):
+                self._logger.info(
+                    "[{}/{}] Skipping {}: '{}'. [Reason: Dynamic item]".format(
                         self.__stats.countsLibraries[
                             self.plexLibrarySettings.name
                         ].items.processed,
@@ -333,7 +372,7 @@ class PlexLibraryProcessor:
                 )
             elif self._isItemProcessed(item):
                 self._logger.info(
-                    "[{}/{}] Skipping {}: {}. Already Processed".format(
+                    "[{}/{}] Skipping {}: '{}'. [Reason: Already Processed]".format(
                         self.__stats.countsLibraries[
                             self.plexLibrarySettings.name
                         ].items.processed,
@@ -344,7 +383,7 @@ class PlexLibraryProcessor:
                 )
             else:
                 self._logger.info(
-                    "[{}/{}] Processing {}: {}".format(
+                    "[{}/{}] Processing {}: '{}'".format(
                         self.__stats.countsLibraries[
                             self.plexLibrarySettings.name
                         ].items.processed,
@@ -687,7 +726,11 @@ class PlexLibraryProcessor:
             )
         )
         self._logger.info(
-            "  Items Processed: {}".format(self.__stats.countsProgram.items.total)
+            "  Items Processed: {}".format(self.__stats.countsProgram.items.total - self.__stats.countsProgram.items.skipped)
+        )
+
+        self._logger.info(
+            "  Items Skipped: {}".format(self.__stats.countsProgram.items.skipped)
         )
 
         for libraryName in self.__stats.timerLibraries.keys():
@@ -703,9 +746,14 @@ class PlexLibraryProcessor:
             )
 
             self._logger.info(
-                "  Collections: {}".format(libaryCounts.collections.total)
+                "  Collections Processed: {}".format(libaryCounts.collections.total)
             )
 
-            self._logger.info("  Items: {}".format(libaryCounts.items.total))
+            self._logger.info(
+                "  Collections Skipped: {}".format(libaryCounts.collections.skipped)
+            )
+
+            self._logger.info("  Items Processed: {}".format(libaryCounts.items.total - libaryCounts.items.skipped))
+            self._logger.info("  Items Skipped: {}".format(libaryCounts.items.skipped))
 
         self._logger.info("-" * 50)

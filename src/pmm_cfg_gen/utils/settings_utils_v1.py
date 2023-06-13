@@ -98,15 +98,25 @@ class SettingsOutput:
         self.overwrite = overwrite
 
 
+class SettingsPmmDefaults:
+    deltaOnly: bool
+    basePath: str | None
+
+    def __init__(self, deltaOnly: bool = False, basePath: str | None = None) -> None:
+        self.deltaOnly = deltaOnly
+        self.basePath = expandvars(basePath.strip()) if basePath is not None else None        
+
 class SettingsPlexLibrary:
     name: str
     path: str | None
     pmm_path: str | None
+    pmm_delta: bool | None
 
-    def __init__(self, name: str, path: str | None = None, pmm_path: str | None = None) -> None:
+    def __init__(self, name: str, path: str | None = None, pmm_path: str | None = None, pmm_delta: bool | None = None) -> None:
         self.name = name.strip()
         self.path = path.strip() if path is not None else name.strip()
         self.pmm_path = pmm_path.strip() if pmm_path is not None else None
+        self.pmm_delta = pmm_delta 
 
 
 class SettingsPlexServer:
@@ -114,7 +124,7 @@ class SettingsPlexServer:
     token: str
     libraries: list[SettingsPlexLibrary]
 
-    def __init__(self, serverUrl: str, token: str, libraries: List) -> None:
+    def __init__(self, serverUrl: str, token: str, libraries: List, pmmDefaults: SettingsPmmDefaults | None = None) -> None:
         self.serverUrl = serverUrl
         self.token = token
 
@@ -127,6 +137,15 @@ class SettingsPlexServer:
                 elif isinstance(library, str):
                     self.libraries += [SettingsPlexLibrary(name=library)]
 
+        if pmmDefaults is not None:
+            for library in self.libraries:
+                
+                if library.pmm_delta is None:
+                    library.pmm_delta = pmmDefaults.deltaOnly
+                    
+                if library.path is None and pmmDefaults.basePath is not None:
+                    library.path = os.path.join(pmmDefaults.basePath, library.name)
+                        
     @classmethod
     def from_dict(cls, data: dict):
         return cls(
@@ -364,6 +383,10 @@ class SettingsManager:
                 serverUrl=expandvars(self._config["plex"]["serverUrl"].as_str()),
                 token=expandvars(self._config["plex"]["token"].as_str()),
                 libraries=self._config["plex"]["libraries"].get(confuse.Optional(list)),  # type: ignore
+                pmmDefaults=SettingsPmmDefaults(
+                    deltaOnly=self._config["pmm"]["deltaOnly"].get(confuse.Optional(bool, default=None)),  # type: ignore
+                    basePath=self._config["pmm"]["basePath"].get(confuse.Optional(str, default=None)),  # type: ignore
+                )
             ),
             thePosterDatabase=SettingsThePosterDatabase(
                 searchUrl=expandvars(

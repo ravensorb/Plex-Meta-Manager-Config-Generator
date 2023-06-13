@@ -10,14 +10,17 @@ from pmm_cfg_gen.utils.timer import timer
 class PlexStatsTotals:
     total: int
     processed: int
+    skipped: int
 
     def __init__(self) -> None:
         self.total = 0
         self.processed = 0
+        self.skipped = 0
 
     def _addStats(self, stats):
         self.total += stats.total
         self.processed += stats.processed
+        self.skipped += stats.skipped
 
 
 class PlexStatsLibraryTotals:
@@ -34,6 +37,7 @@ class PlexStatsLibraryTotals:
     def calcTotals(self):
         self.totals.total = self.collections.total + self.items.total
         self.totals.processed = self.collections.processed + self.items.processed
+        self.totals.skipped = self.collections.skipped + self.items.skipped
 
 
 class PlexStats:

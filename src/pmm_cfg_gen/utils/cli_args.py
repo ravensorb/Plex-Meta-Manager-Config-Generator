@@ -30,6 +30,7 @@ globalArgParser.add_argument(
     default=False,
     help="Overwrite existing files (default: %(default)s)",
 )
+
 globalArgParser.add_argument(
     "--theMovieDatabase.apiKey",
     help="The Movie Database API Key"
@@ -39,6 +40,13 @@ globalArgParser.add_argument(
     action="store_true",
     default=None,
     help="Enable Pro features for The Poster Database (requires you to be able to login to the site)"
+)
+
+globalArgParser.add_argument(
+    "--pmm.deltaOnly",
+    action="store_true",
+    default=None,
+    help="Only generate files for items that do not already exist"
 )
 
 # Advanced Arguments

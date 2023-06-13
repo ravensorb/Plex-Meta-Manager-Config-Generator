@@ -1,11 +1,16 @@
 metadata: 
 {%- for item in items %}
-    "{{ item.metadata | formatItemTitle }}":
+    {%- set itemTitleFull = item.metadata | formatItemTitle %}
+    {%- set itemTitleShort = item.metadata | formatItemTitle(False, False) %}
+    "{{ itemTitleFull }}":
         year: {{ item.metadata.year }}
         title: "{{ item.metadata.title }}"
-        alt_title: "{{ item.metadata | formatItemTitle }}"
-        orig_title: "{% if item.metadata.originalTitle %}{{ item.metadata.originalTitle }}{% else %}{{ item.metadata.title }}{%- endif %}"
-        {% if item.metadata.titleSort %}sort_title: "{{ item.metadata.titleSort }}"{%- endif %}
+        {%- if itemTitleFull != item.metadata.title %}
+        alt_title: "{{ itemTitleFull }}"{% endif %}
+        {%- if item.metadata.originalTitle and itemTitleFull != item.metadata.originalTitle %}
+        orig_title: "{{ item.metadata.originalTitle }}"{% endif %}
+        {%- if item.metadata.titleSort and item.metadata.titleSort != item.metadata.title %}
+        sort_title: "{{ item.metadata.titleSort }}"{% endif %}
         {% if not item.pmm.poster %}# {% endif %}url_poster: {{ item.pmm.poster | default(settings.thePosterDatabase.dbAssetUrl, True) }}
         # IDs: {{ item.metadata.guids | map(attribute="id") | list | join(', ')}}
         # tpdb: {{ item.metadata | generateTpDbSearchUrl }}
@@ -18,8 +23,6 @@ metadata:
         {% if not pmmSeasonPoster %}# {% endif %}seasons:{%- endif %}
             {% if not pmmSeasonPoster %}# {% endif %}{{ season.seasonNumber }}:
                 {% if not pmmSeasonPoster %}# {% endif %}url_poster: {{ pmmSeasonPoster | default(settings.thePosterDatabase.dbAssetUrl, True) }}
-                # IDs: {{ season.guids | map(attribute="id") | list | join(', ')}}
-                # {{ season | generateTpDbSearchUrl }}
         {%- endfor %}        
 {% endfor %}
 

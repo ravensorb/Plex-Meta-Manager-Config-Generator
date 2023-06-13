@@ -55,17 +55,23 @@ class PlexLibraryCache:
         return it is not None
 
     def __isItemCached(self, item) -> bool:
+        it = self.findByItem(item)
+
+        return it is not None
+
+    def findByItem(self, item):
         it = next(
             (
                 x
                 for x in self.items
-                if x["title"] == PlexItemHelper.formatItemTitle(item)
+                if x["title"] == PlexItemHelper.formatItemTitle(item) or 
+                    ("orig_title" in x and x["orig_title"] == PlexItemHelper.formatItemTitle(item)) or 
+                    ("alt_title" in x and x["alt_title"] == PlexItemHelper.formatItemTitle(item))
             ),
             None,
         )
 
-        return it is not None
-
+        return it
 
 class PlexCache:
     __cache: dict[str, PlexLibraryCache]

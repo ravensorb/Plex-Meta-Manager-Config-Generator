@@ -99,8 +99,19 @@ class PlexMetaManagerCache:
         
         result = {
             "title": data["title"] if "title" in data else metadataName,
+
+            "poster": self.__getPosterUrlFromItem(data),
+
             "label": self.__getAttributeListFromItemByName(data, "label"),
-            "poster": self.__getPosterUrlFromItem(data),            
+
+            "movie": self.__getAttributeListFromItemByName(data, "movie"),
+            "show": self.__getAttributeListFromItemByName(data, "movie"),
+            "list": self.__getAttributeListFromItemByName(data, "list"),
+            "collection": self.__getAttributeListFromItemByName(data, "collection"),
+
+            "sort_prefix": self.__getAttributeFromItemByName(data, "sort_prefix"),
+            "sort_order": self.__getAttributeFromItemByName(data, "sort_order"),
+            "sort_separator": self.__getAttributeFromItemByName(data, "sort_separator"),
         }
 
         if "seasons" in data:
@@ -259,6 +270,14 @@ class PlexMetaManagerCache:
 
         if "template" in data:
             self._logger.debug("Searching Template: '{}'".format(data["template"]))
+
+            if isinstance(data["template"], list) and len(data["template"]) > 0:
+                result = None
+                for x in data["template"]:
+                    if attribute in x: result =+ ", ".join(x[attribute])
+
+                if result and len(result) > 0: return result.strip()
+            
             if attribute in data["template"]: return data["template"][attribute]
 
         if "variables" in data:

@@ -125,4 +125,5 @@ class TemplateManager:
         self.__tplEnv.filters["getNamedCollectionLabels"] = template_filters.getNamedCollectionLabels
         self.__tplEnv.filters["getCollectionGuidsByName"] = template_filters.getCollectionGuidsByName
         self.__tplEnv.filters["getTmDbCollectionId"] = template_filters.getTmDbCollectionId
+        self.__tplEnv.filters["getPMMAttributeByName"] = template_filters.getPMMAttributeByName
         # self.__tplEnv.filters["getTvDbListId"] = template_filters.getTvDbListId

@@ -3,7 +3,7 @@ plex:
   serverUrl: ${PLEX_SERVER:-https://plex.ravenwolf.org:32400}
   token: ${PLEX_TOKEN}
 #   library:
-#   - { name: Library1, path: "lib1", pmm_path: "" }
+#   - { name: Library1, path: "lib1", pmm_path: "", pmm_delta: true/false }
 #   - { name: Library2 }
 # plexMetaManager:
 #   cacheExistingFiles: false

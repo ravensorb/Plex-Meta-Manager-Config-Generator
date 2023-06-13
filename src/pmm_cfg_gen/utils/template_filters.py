@@ -8,6 +8,8 @@ import typing as t
 import re
 from jinja2.exceptions import FilterArgumentError
 
+from dotty_dict import dotty
+
 from plexapi.library import LibrarySection
 from plexapi.collection import Collection
 from plexapi.video import Video, Movie, Show
@@ -258,6 +260,17 @@ def getPMMSeason(pmm : dict[str, dict], seasonNumber, attribute : str | None = N
         for season in pmm["seasons"]:
             if season == seasonNumber:
                 return pmm["seasons"][season][attribute] if attribute in pmm["seasons"][season] else pmm["seasons"][season]
+
+    return None
+
+def getPMMAttributeByName(pmm : dict[str, dict], attribute : str | None = None):
+    if pmm is None: return None
+
+    tmp = dotty(pmm)
+
+    if tmp.get(attribute) is not None: return tmp.get(attribute)
+    if tmp.get("variables.{}".format(attribute)) is not None: return tmp.get("variables.{}".format(attribute))
+    if tmp.get("template.{}".format(attribute)) is not None: return tmp.get("template.{}".format(attribute))
 
     return None
 

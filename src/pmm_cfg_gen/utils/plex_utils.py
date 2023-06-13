@@ -261,7 +261,7 @@ class PlexCollectionHelper:
         self.__guids = dict({"tmdb": list(), "tvdb": list(), "imdb": list()})
 
         # Add guids to the guids.
-        for item in self.__collection.children:
+        for item in self.__collection.items():
             pih = PlexVideoHelper(item)
 
             # Add guids to the list of guids.

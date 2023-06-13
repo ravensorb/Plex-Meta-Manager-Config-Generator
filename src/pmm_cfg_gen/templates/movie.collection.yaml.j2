@@ -5,7 +5,14 @@ collections:
     {%- set lstShow = "" %}
     {%- set lstMovie = item.metadata | getCollectionGuidsByName("tmdb") | concat(item.pmm.movie) | unique | join(", ") %}
     {%- set lstLabels = item.metadata | getNamedCollectionLabels | concat(item.pmm.label) | unique | join(", ") %}
-    variables: { {% if lstLabels %}label: "{{ lstLabels }}", {% endif %}{% if item.pmm and item.pmm.sort.prefix %}sort_prefix: "{{item.pmm.sort.prefix}}", {% endif %}{% if item.pmm and item.pmm.sort.order %}sort_order: "{{ item.pmm.sort.order }}", {% endif %}{% if item.pmm and item.pmm.sort.separator %}sort_separator: "{{ item.pmm.sort.separator }}", {% endif %}{% if lstMovie | length > 0 %}movie: "{{ lstMovie }}", {% endif %}{% if lstShow | length > 0 %}show: "{{ lstShow }}", {% endif %}{% if settings.thePosterDatabase.dbAssetUrl %}poster: {{ item.pmm.poster | default(settings.thePosterDatabase.dbAssetUrl, True) }}{% endif %} }
+    variables: { 
+      {%- if lstLabels %} label: "{{ lstLabels }}",{% endif %}
+      {%- if item.pmm and item.pmm.sort.prefix %} sort_prefix: "{{item.pmm.sort.prefix}}",{% endif %}
+      {%- if item.pmm and item.pmm.sort.order %} sort_order: "{{ item.pmm.sort.order }}",{% endif %}
+      {%- if item.pmm and item.pmm.sort.separator %} sort_separator: "{{ item.pmm.sort.separator }}",{% endif %}
+      {%- if lstMovie | length > 0 %} movie: "{{ lstMovie }}",{% endif %}
+      {%- if lstShow | length > 0 %} show: "{{ lstShow }}",{% endif %}
+      {%- if settings.thePosterDatabase.dbAssetUrl %} poster: {{ item.pmm.poster | default(settings.thePosterDatabase.dbAssetUrl, True) }}{% endif %} }
     template: [ 
       { name: tplCommonBase }, 
       { name: tplCommonCollection }, 
