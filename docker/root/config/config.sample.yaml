@@ -1,0 +1,21 @@
+plex:
+  serverUrl: ${PLEX_SERVER:-https://plex:32400}
+  token: ${PLEX_TOKEN}
+  libraries:
+    - { name: "TV Shows", path: "tv", pmm_path: "/pmm_config/tv" }
+    - { name: "Movies", path: "movies", pmm_path: "/pmm_config/movies" }
+
+plexMetaManager:
+  cacheExistingFiles: true
+
+thePosterDatabase:
+  enablePro: false
+
+theMovieDatabase:
+  apiKey: ${TMDB_API_KEY}
+
+generate:
+  formats:
+  - yaml
+  - html
+  # - json

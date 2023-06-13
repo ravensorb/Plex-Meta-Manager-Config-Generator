@@ -15,7 +15,8 @@ pip install pmm-cfg-gen
 Usage:
 
 ```shell
-usage: pmm-cfg-gen [-h] [--plex.serverUrl PLEX.SERVERURL] [--plex.token PLEX.TOKEN] [--plex.lbraries [PLEX.LBRARIES ...]] [--output.path OUTPUT.PATH] [--logLevel {INFO,WARN,DEBUG,CRITICAL}]
+usage: pmm-cfg-gen [-h] [--plex.serverUrl PLEX.SERVERURL] [--plex.token PLEX.TOKEN] [--plex.lbraries [PLEX.LBRARIES ...]] [--output.path OUTPUT.PATH] [--output.overwrite OUTPUT.OVERWRITE]
+                   [--theMovieDatabase.apiKey THEMOVIEDATABASE.APIKEY] [--thePosterDatabase.enablePro] [--pmm.deltaOnly] [--logLevel {INFO,WARN,DEBUG,CRITICAL}]
 
 options:
   -h, --help            show this help message and exit
@@ -27,6 +28,13 @@ options:
                         Comma delimited list of libraries to process
   --output.path OUTPUT.PATH
                         Root path to store generated files (default: ./data)
+  --output.overwrite OUTPUT.OVERWRITE
+                        Overwrite existing files (default: False)
+  --theMovieDatabase.apiKey THEMOVIEDATABASE.APIKEY
+                        The Movie Database API Key
+  --thePosterDatabase.enablePro
+                        Enable Pro features for The Poster Database (requires you to be able to login to the site)
+  --pmm.deltaOnly       Only generate files for items that do not already exist in current PMM configs
   --logLevel {INFO,WARN,DEBUG,CRITICAL}
                         Logging Level (default: INFO)
 
@@ -40,15 +48,17 @@ config.yaml:
 
 ```yaml
 plex:
-  serverUrl: <plex server>
+  serverUrl: <plex server url>
   token: <plex token>
   libraries:
-    - <plex library name>
-    - <plex library name>
-    - <plex library name>
-    
+    - { name: "TV Shows", path: "tv", pmm_path: "/pmm_config/tv" }
+    - { name: "Movies", path: "movies" }
+
+plexMetaManager:
+  cacheExistingFiles: true
+
 theMovieDatabase:
-  apiKey: <api key for tmdb>
+  apiKey: <tmdb api key>
 
 output:
     path: <path to store generated output>

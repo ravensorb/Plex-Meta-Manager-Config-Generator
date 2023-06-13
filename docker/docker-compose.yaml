@@ -1,0 +1,17 @@
+---
+version: "3.1"
+
+services:
+  pmm-cfg-gen:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ravensorb/pmm-cfg-gen:latest
+    container_name: pmm-cfg-gen
+    environment:
+      - PLEX_URL=https://plex:32400
+      - PLEX_TOKEN=xxxxxxxxxxxxxxxxxxxx
+      - TMDB_API_KEY=xxxxxxxxxxxxxxxxxxxx
+    volumes:
+      - ./config:/config
+      - ./pmm_config:/pmm_config
