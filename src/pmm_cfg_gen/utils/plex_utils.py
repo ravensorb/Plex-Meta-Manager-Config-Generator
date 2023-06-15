@@ -24,7 +24,7 @@ class PlexJsonHandler(jsonpickle.handlers.BaseHandler):
          @param obj - The object to be flattened
          @param data - The dictionary to be flattened into. Should be an empty dictionary
          
-         @return The dictionary with flattened objects as key / value pairs in the form of a dictionary ( field_name : value
+         @return The dictionary with flattened objects as key / value pairs in the form of a dictionary ( field_name : value )
         """
         # Fix url raise
         # Set the _baseurl attribute of obj to the PlexServer.

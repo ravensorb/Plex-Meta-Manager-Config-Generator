@@ -2,7 +2,7 @@
 
 [![PyPI version](https://badge.fury.io/py/pmm-cfg-gen.svg)](https://badge.fury.io/py/pmm-cfg-gen)
 
-A python script to automatically generate Plex Meta Manager configuration files based on your plex libraries.
+A python application to automatically generate Plex Meta Manager configuration files based on your plex libraries.
 
 ## Install
 

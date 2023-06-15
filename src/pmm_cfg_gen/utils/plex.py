@@ -734,26 +734,41 @@ class PlexLibraryProcessor:
         )
 
         for libraryName in self.__stats.timerLibraries.keys():
-            libraryTimer = self.__stats.timerLibraries[libraryName]
-            libaryCounts = self.__stats.countsLibraries[libraryName]
+            try:
+                libraryTimer = self.__stats.timerLibraries[libraryName]
+                libaryCounts = self.__stats.countsLibraries[libraryName]
 
-            self._logger.info("Statistics for Library: '{}'".format(libraryName))
+                self._logger.info("Statistics for Library: '{}'".format(libraryName))
 
-            self._logger.info(
-                "  Processing Time: '{}'. Total Time: {}".format(
-                    libraryName, libraryTimer.elapsed_time_ts.to_str()
+                self._logger.info(
+                    "  Processing Time: '{}'. Total Time: {}".format(
+                        libraryName, libraryTimer.elapsed_time_ts.to_str()
+                    )
                 )
-            )
 
-            self._logger.info(
-                "  Collections Processed: {}".format(libaryCounts.collections.total)
-            )
+                self._logger.info(
+                    "  Collections Processed: {}".format(libaryCounts.collections.total)
+                )
 
-            self._logger.info(
-                "  Collections Skipped: {}".format(libaryCounts.collections.skipped)
-            )
+                self._logger.info(
+                    "  Collections Skipped: {}".format(libaryCounts.collections.skipped)
+                )
 
-            self._logger.info("  Items Processed: {}".format(libaryCounts.items.total - libaryCounts.items.skipped))
-            self._logger.info("  Items Skipped: {}".format(libaryCounts.items.skipped))
-
+                self._logger.info("  Items Processed: {}".format(libaryCounts.items.total - libaryCounts.items.skipped))
+                self._logger.info("  Items Skipped: {}".format(libaryCounts.items.skipped))
+            except:
+                self._logger.exception("Failed displaying stats for library: '{}'".format(libraryName))
+                
         self._logger.info("-" * 50)
+
+    # def _unlockAllLibraryFields(self):
+
+    #     #self._logger.debug("Possible Fields: {}".format(self.plexLibrary.listFields(self.plexLibrary.type)))
+
+    #     for field in self.plexLibrary.listFields(self.plexLibrary.type):
+    #         self._logger.info("Unlocking Field: '{}'".format(field))
+    #         try:
+    #             self.plexLibrary.unlockAllField(field)
+    #         except:
+    #             self._logger.exception("Failed unlocking field: '{}'".format(field))
+        
