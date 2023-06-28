@@ -2,11 +2,14 @@ metadata:
 {%- for item in items %}
     {%- set itemTitleFull = item.metadata | formatItemTitle %}
     {%- set itemTitleShort = item.metadata | formatItemTitle(False, False) %}
+    {#- title: {{ item.metadata.title }}
+    # itemTitleFull: {{ itemTitleFull }}
+    # itemTitleShort: {{ itemTitleShort }} #}
     "{{ itemTitleFull }}":
         year: {{ item.metadata.year }}
         title: "{{ item.metadata.title }}"
-        {%- if itemTitleFull != item.metadata.title %}
-        alt_title: "{{ itemTitleFull }}"{% endif %}
+        {%- if itemTitleShort != item.metadata.title  %}
+        alt_title: "{{ itemTitleShort }}"{% endif %}
         {%- if item.metadata.originalTitle and itemTitleFull != item.metadata.originalTitle %}
         orig_title: "{{ item.metadata.originalTitle }}"{% endif %}
         {%- if item.metadata.titleSort and item.metadata.titleSort != item.metadata.title %}
