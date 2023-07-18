@@ -14,6 +14,7 @@ import urllib3.exceptions
 from plexapi.library import LibrarySection
 from plexapi.collection import Collection
 from plexapi.video import Video
+from plexapi.audio import Artist
 from plexapi.server import PlexServer
 
 from pmm_cfg_gen.utils.settings_utils_v1 import globalSettingsMgr, SettingsTemplateLibraryTypeEnum, SettingsTemplateFileFormatEnum, SettingsPlexLibrary
@@ -327,7 +328,7 @@ class PlexLibraryProcessor:
             pmmItem = self.__plexMetaManagerCache[self.plexLibrarySettings.name].collectionItem_to_dict(collection.title)
             
             fileNameBase = PlexItemHelper.formatString(globalSettingsMgr.settings.output.fileNameFormat.collections, library=self.plexLibrary, collection=collection, item=None, pmm=pmmItem, cleanTitleStrings=True)
-        elif len(items) == 1 and isinstance(items[0], Video):
+        elif len(items) == 1 and (isinstance(items[0], Video) or isinstance(items[0], Artist)):
             itemName=items[0].title
             
             pmmItem = self.__plexMetaManagerCache[self.plexLibrarySettings.name].metadataItem_to_dict(items[0].title)
@@ -393,24 +394,31 @@ class PlexLibraryProcessor:
                     )
                 )
 
-                pmmItem = self.__plexMetaManagerCache[self.plexLibrarySettings.name].metadataItem_to_dict(item.title, item.year)
+                pmmItem = self.__plexMetaManagerCache[self.plexLibrarySettings.name].metadataItem_to_dict(item.title, item.year if isinstance(item, Video) else None)
 
                 self._addItemToProcessedCache(collection, item, pmmItem)
 
                 itemDict = { "metadata": item, "pmm": pmmItem }
-                
-                seasons = []
-                if "childCount" in item.__dict__:
-                    self._logger.debug("  Loading Seasons...")
-                    seasons = item.seasons()
 
-                    itemDict.update({"seasons": seasons})
+                if isinstance(item, Video):
+                    seasons = []
+                    if "childCount" in item.__dict__:
+                        self._logger.debug("  Loading Seasons...")
+                        seasons = item.seasons()
+
+                        itemDict.update({"seasons": seasons})
+                elif isinstance(item, Artist):
+                    albums = item.albums()
+                    itemDict.update({"albums": albums})
+
+                    tracks = item.tracks()
+                    itemDict.update({"tracks": tracks})
 
                 itemsWithExtras.append(itemDict)
 
         # Do we have anything we need to process
         if len(itemsWithExtras) > 0:
-            sorted(itemsWithExtras, key=lambda x: x["metadata"].year)
+            sorted(itemsWithExtras, key=lambda x: x["metadata"].year if "year" in x["metadata"].__dict__ else 0)
 
             for tplFile in tplFiles:
                 try:

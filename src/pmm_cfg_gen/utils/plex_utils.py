@@ -8,6 +8,7 @@ from plexapi.base import PlexObject, PlexPartialObject
 from plexapi.library import LibrarySection
 from plexapi.collection import Collection
 from plexapi.video import Video, Movie, Show
+from plexapi.audio import Artist
 from plexapi.server import PlexServer
 import re
 
@@ -117,7 +118,7 @@ class PlexItemHelper:
         return title.replace("/", "-").replace("\\", "-").replace(":", "-").replace("*", "-").replace("?", "-").replace("\"", "-").replace("<", "-").replace(">", "-").replace("|", "-")
 
     @classmethod
-    def formatString(cls, formatString: str, library : LibrarySection | None = None, collection : Collection | None = None, item : Video | None = None, pmm : dict | None = None, librarySettings : SettingsPlexLibrary | None = None, cleanTitleStrings : bool = False) -> str:
+    def formatString(cls, formatString: str, library : LibrarySection | None = None, collection : Collection | None = None, item : Video | Artist | None = None, pmm : dict | None = None, librarySettings : SettingsPlexLibrary | None = None, cleanTitleStrings : bool = False) -> str:
         """
         The format string to format. This is a string with placeholders to be substituted.
         
@@ -156,12 +157,15 @@ class PlexItemHelper:
         if item is not None:
             result = result.replace("{{item.title}}", cls.cleanString(item.title) if cleanTitleStrings else item.title)
             result = result.replace("{{item.titleSort}}", item.titleSort if item.titleSort else "")
-            result = result.replace("{{item.year}}", str(item.year) if item.year and str(item.year) not in item.title else "")
-            result = result.replace("{{item.type}}", item.type if item.type else "")
-            result = result.replace("{{item.titleSort}}", item.titleSort if item.titleSort else "")
-            result = result.replace("{{item.contentRating}}", item.contentRating if item.contentRating else "")
-            result = result.replace("{{item.editionTitle}}", item.editionTitle if isinstance(item, Movie) and item.editionTitle else "")
 
+            if isinstance(item, Video):
+                result = result.replace("{{item.year}}", str(item.year) if item.year and str(item.year) not in item.title else "")
+                result = result.replace("{{item.type}}", item.type if item.type else "")
+                result = result.replace("{{item.contentRating}}", item.contentRating if item.contentRating else "")
+                result = result.replace("{{item.editionTitle}}", item.editionTitle if isinstance(item, Movie) and item.editionTitle else "")
+            elif isinstance(item, Artist):
+                pass
+    
             if "{{universe}}" in result:
                 lstLabels = PlexItemHelper.getNamedCollectionLabels(item)
                 if lstLabels is not None and len(lstLabels) > 0:
@@ -200,16 +204,19 @@ class PlexItemHelper:
         return cls.cleanString(str(item.title))
 
     @classmethod
-    def formatItemTitle(cls, item : PlexPartialObject, includeYear : bool = True, includeEdition : bool = True ) -> str:
+    def formatItemTitle(cls, item : Collection | Video | Artist, includeYear : bool = True, includeEdition : bool = True ) -> str:
 
         strFormat = "{{item.title}}"
 
         if isinstance(item, Collection):
             return PlexItemHelper.formatString(strFormat, collection=item)
-        elif isinstance(item, Video):
-            if re.match(r"[\s\S]*\([\d]{4}\)$", item.title, flags=re.DOTALL) is None:
-                strFormat += " ({{item.year}})" if includeYear else ""
-            strFormat += " [{{item.editionTitle}}]" if includeEdition and isinstance(item, Movie) else ""
+        else:
+            if isinstance(item, Video):
+                if re.match(r"[\s\S]*\([\d]{4}\)$", item.title, flags=re.DOTALL) is None:
+                    strFormat += " ({{item.year}})" if includeYear else ""
+                strFormat += " [{{item.editionTitle}}]" if includeEdition and isinstance(item, Movie) else ""
+            elif isinstance(item, Artist): 
+                pass
 
             return PlexItemHelper.formatString(strFormat, item=item)
 
