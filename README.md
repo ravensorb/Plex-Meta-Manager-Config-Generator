@@ -4,6 +4,12 @@
 
 A python application to automatically generate Plex Meta Manager configuration files based on your plex libraries.
 
+Library types supported:
+
+* Movie
+* TV
+* Music (json format only)
+
 ## Install
 
 ```shell
