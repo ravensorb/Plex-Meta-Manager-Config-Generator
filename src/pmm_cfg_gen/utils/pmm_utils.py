@@ -260,9 +260,9 @@ class PlexMetaManagerCache:
     def __getAttributeFromItemByName(self, data : dict, attribute : str) -> str | None:
         if data is None: return None
         
-        self._logger.debug("Getting '{}' from item: '{}'".format(attribute, data))
+        self._logger.debug("Getting '{}' from item".format(attribute))
 
-        result = None
+        result : str | None = None
 
         if attribute in data: 
             self._logger.debug("Searching Root: '{}'".format(data[attribute]))
@@ -272,17 +272,22 @@ class PlexMetaManagerCache:
             self._logger.debug("Searching Template: '{}'".format(data["template"]))
 
             if isinstance(data["template"], list) and len(data["template"]) > 0:
-                result = None
+                result = ""
                 for x in data["template"]:
-                    if attribute in x: result =+ ", ".join(x[attribute])
+                    if attribute in x: result += ", ".join(x[attribute])
 
                 if result and len(result) > 0: return result.strip()
-            
-            if attribute in data["template"]: return data["template"][attribute]
+            elif isinstance(data["template"], dict) and attribute in data["template"]: 
+                self._logger.debug("Found: '{}' in '{}'".format(attribute, data["template"][attribute]))
+                return data["template"][attribute]
+            else:
+                self._logger.error("Invalid template: '{}'".format(data["template"]))
 
         if "variables" in data:
             self._logger.debug("Searching Variable: '{}'".format(data["variables"]))
-            if attribute in data["variables"]: return data["variables"][attribute]
+            if attribute in data["variables"]: 
+                self._logger.debug("Found: '{}' in '{}'".format(attribute, data["variables"][attribute]))
+                return data["variables"][attribute]
             
         return result
 
@@ -291,8 +296,8 @@ class PlexMetaManagerCache:
         
         self._logger.debug("Getting Poster Url from: '{}'".format(data))
         
-        posterUrl = self.__getAttributeListFromItemByName(data, "url_poster")
-        if posterUrl is None or len(posterUrl) == 0: posterUrl = self.__getAttributeListFromItemByName(data, "poster")
+        posterUrl = self.__getAttributeListFromItemByName(data, "poster")
+        if posterUrl is None or len(posterUrl) == 0 or posterUrl == "": posterUrl = self.__getAttributeListFromItemByName(data, "url_poster")
 
         self._logger.debug("Poster Url: '{}'".format(posterUrl))
         

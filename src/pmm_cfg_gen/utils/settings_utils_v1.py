@@ -25,6 +25,7 @@ class SettingsTemplateFileFormatEnum(Enum):
 
 class SettingsTemplateLibraryTypeEnum(Enum):
     ANY = "any"
+    LIBRARY = "library"
     MOVIE = "movie"
     MUSIC = "music"
     REPORT = "report"
@@ -67,19 +68,25 @@ class SettingsGenerate:
 
 
 class SettingsOutputFileNames:
+    library : str
     collections: str
     metadata: str
+    libraryReport : str
     collectionsReport: str
     metadataReport: str
     report: str
     template: str
 
-    def __init__(self, collections: str, metadata: str, collectionsReport: str, metadataReport: str, report: str, template: str) -> None:
+    def __init__(self, library: str, collections: str, metadata: str, libraryReport: str, collectionsReport: str, metadataReport: str, report: str, template: str) -> None:
+        self.library = library
         self.collections = collections
         self.metadata = metadata
+
+        self.libraryReport = libraryReport
         self.collectionsReport = collectionsReport
         self.metadataReport = metadataReport
         self.report = report
+        
         self.template = template
 
 
@@ -257,11 +264,13 @@ class SettingsTemplateGroups:
         if result is not None and len(result) > 0:
             return result 
         
-        raise ValueError(
-            "No template found for group '{}' and library type '{}'".format(
-                group, libraryType
-            )
-        )
+        # raise ValueError(
+        #     "No template found for group '{}' and library type '{}'".format(
+        #         group, libraryType
+        #     )
+        # )
+
+        return None
 
 
 class SettingsTheTvDatabase:
@@ -425,6 +434,11 @@ class SettingsManager:
                 sharedTemplatePathFormat=str(self._config["output"]["sharedTemplatePathFormat"].as_str()),
                 overwrite=bool(self._config["output"]["overwrite"].get(confuse.Optional(False))),
                 fileNameFormat=SettingsOutputFileNames(
+                    library=str(
+                        self._config["output"]["fileNameFormat"]["library"].get(
+                            confuse.Optional("{{library.title}}")
+                        )
+                    ),
                     collections=str(
                         self._config["output"]["fileNameFormat"]["collections"].get(
                             confuse.Optional("{{collection.title}} ({{collection.year}})")
@@ -433,6 +447,11 @@ class SettingsManager:
                     metadata=str(
                         self._config["output"]["fileNameFormat"]["metadata"].get(
                             confuse.Optional("{{item.title}} ({{item.year}}) [{{item.editionTitle}}]")
+                        )
+                    ),
+                    libraryReport=str(
+                        self._config["output"]["fileNameFormat"]["libraryReport"].get(
+                            confuse.Optional("{{library.title}} - Library")
                         )
                     ),
                     collectionsReport=str(

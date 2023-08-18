@@ -3,6 +3,9 @@
 
 # from datetime import timedelta
 # import time
+import json
+
+import jsonpickle
 from pmm_cfg_gen.utils.timer import timer
 
 ###################################################################################################
@@ -16,12 +19,24 @@ class PlexStatsTotals:
         self.total = 0
         self.processed = 0
         self.skipped = 0
+        self.percentage = 0
 
     def _addStats(self, stats):
         self.total += stats.total
         self.processed += stats.processed
         self.skipped += stats.skipped
 
+    def calcPercentage(self):
+        if self.total > 0:
+            self.percentage = int(self.processed / self.total * 100)
+
+    def toJson(self):
+        return {
+            "total": self.total,
+            "processed": self.processed,
+            "skipped": self.skipped,
+            "percentage": self.percentage,
+        }
 
 class PlexStatsLibraryTotals:
     totals: PlexStatsTotals
@@ -39,6 +54,16 @@ class PlexStatsLibraryTotals:
         self.totals.processed = self.collections.processed + self.items.processed
         self.totals.skipped = self.collections.skipped + self.items.skipped
 
+        self.totals.calcPercentage()
+        self.collections.calcPercentage()
+        self.items.calcPercentage()
+
+    def toJson(self):
+        return {
+            "totals": self.totals.toJson(),
+            "collections": self.collections.toJson(),
+            "videos": self.items.toJson(),
+        }
 
 class PlexStats:
     timerProgram: timer
@@ -69,3 +94,17 @@ class PlexStats:
                 self.countsLibraries[libraryName].collections
             )
             self.countsProgram.items._addStats(self.countsLibraries[libraryName].items)
+
+        self.countsProgram.calcTotals()
+
+    def toJson(self):
+        return {
+            "timers": {
+                "program": json.loads(str(jsonpickle.dumps(self.timerProgram, unpicklable=False))),
+                "libraries": json.loads(str(jsonpickle.dumps(self.timerLibraries, unpicklable=False))),
+            },
+            "counts": {
+                "program": json.loads(str(jsonpickle.dumps(self.countsProgram, unpicklable=False))),
+                "libarlibrariesies": json.loads(str(jsonpickle.dumps(self.countsLibraries, unpicklable=False)))
+            }
+        }

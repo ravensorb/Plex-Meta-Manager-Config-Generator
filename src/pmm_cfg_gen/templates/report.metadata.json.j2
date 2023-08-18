@@ -1,0 +1,20 @@
+{
+    "items": [{% for item in items %}
+        {
+            "title" : "{{ item.title }}",
+            "type": "{{ item.metadata.type }}",
+            "urls": {
+                "tpdb": "{{ item.searchUrl }}",
+                "tmdb": "{% if item.metadata | getItemGuidByName("tmdb") | default("") | length > 0 %}https://www.themoviedb.org/{% if item.metadata.type == "movie"%}movie{% elif item.metadata.type == "show" %}tv{% else %}{% endif %}/{{ item.metadata | getItemGuidByName("tmdb") }}{% endif %}",
+                "tvdb": "{% if item.metadata | getItemGuidByName("tvdb") | default("") | length > 0 %}ttps://thetvdb.com/search?menu%5Btype%5D={% if item.metadata.type == "movie"%}movie{% elif item.metadata.type == "show" %}series{% else %}{% endif %}&menu%5Byear%5D={{ item.metadata.year }}&query={{ item.metadata | getItemGuidByName("tvdb") }}{% endif %}",
+                "imdb": "{% if item.metadata | getItemGuidByName("imdb") | default("") | length > 0 %}https://www.imdb.com/title/{{ item.metadata | getItemGuidByName("imdb") }}{% endif %}",
+                "trakt": "https://thetvdb.com/{% if item.metadata.type == "movie"%}movies{% elif item.metadata.type == "show" %}shows{% else %}{% endif %}/query={{ item.metadata.title | urlencode }}"
+            },
+            "ids": {{ item.ids | formatJson }},
+            "metadata": {{ item.metadata | formatJson }},
+            "pmm": {{ item.pmm | formatJson }}
+        }{% if not loop.last %},{% endif %}
+    {% endfor %}],
+    "stats" : {{ stats | formatJson }},
+    "processingTime" : {{ processingTime | formatJson }}
+}

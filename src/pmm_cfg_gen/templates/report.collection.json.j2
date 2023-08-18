@@ -1,0 +1,20 @@
+{
+    "items": [{% for item in collections %}
+        {
+            "title" : "{{ item.title }}",
+            "type": "{{ item.metadata.subtype }}",
+            "urls": {
+                "tpdb": "{{ item.searchUrl }}",
+                "tmdb": "https://www.themoviedb.org/search/collection?query={{ item.title | urlencode}}",
+                "tvdb": "https://thetvdb.com/search?menu%5Btype%5D=list&query={{ item.title | urlencode }}",
+                "imdb": "https://www.imdb.com/find/?s=tt{% if item.metadata.subtype == 'movie' %}&ttype=ft{% elif item.metadata.subtype == 'show' %}&ttype=tv{% endif %}&q={{ item.title | urlencode }}",
+                "trakt": "https://trakt.tv/search/lists?query={{ item.title | urlencode }}"
+            },
+            "metadata": {{ item.metadata | formatJson }},
+            "pmm": {{ item.pmm | formatJson }}
+        }{% if not loop.last %},{% endif %}
+    {% endfor %}],
+    "stats" : {{ stats | formatJson }},
+    "processingTime" : {{ processingTime | formatJson }},
+    "library: " : {{ library | formatJson }}
+}

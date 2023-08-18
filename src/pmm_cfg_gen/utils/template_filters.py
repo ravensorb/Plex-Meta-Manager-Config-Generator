@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 #######################################################################
 
+import json
+import logging
 import jsonpickle
 import urllib.parse
 import requests
@@ -68,7 +70,7 @@ def formatJson(data, indent: int = 4):
      
      @return A JSON representation of the data as a string. The output is guaranteed to be UTF - 8 encoded
     """
-    return jsonpickle.dumps(data, indent=indent, unpicklable=False)
+    return json.dumps(json.loads(str(jsonpickle.dumps(data, indent=indent, unpicklable=False))), indent=indent)
 
 def quote(data : str, quateChar : str = "\"") -> str:
     """
@@ -202,17 +204,17 @@ def getItemGuidByName(item, guidName: str) -> str | None:
         plexItem = PlexVideoHelper(item)
 
         s = plexItem.getGuidByName(guidName)
-        #print("Video: Guid '{}' for item '{}' is '{}'".format(guidName, item.title, s))
     elif isinstance(item, Collection):
         plexCollection = PlexCollectionHelper(item)
 
         guids = plexCollection.getGuidByName(guidName)
         if guids: 
             s = ", ".join(guids)
-        #print("Collection: Guid '{}' for item '{}' is '{}'".format(guidName.title, item, s))
     else: 
         s = ""
 
+    #logging.getLogger("pmm-cfg-gen").debug("{}: Guid '{}' is '{}'".format(type(item), guidName, s))
+    
     return s
 
 def getNamedCollectionLabels(item) -> list[str] | None:

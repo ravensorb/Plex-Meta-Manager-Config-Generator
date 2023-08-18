@@ -25,6 +25,8 @@ templates:
   - { type: "library.any", format: "html", file: "library.html.j2" }
   - { type: "library.any", format: "json", file: "library.json.j2", subFolder: "json" }
 
+  - { type: "library.report", format: "html", file: "report.library.html.j2" }
+
   collection:
   - { type: "collection.movie", format: "yaml", file: "movie.collection.yaml.j2", defaultTemplate: "tplTMDBCollection" }
   - { type: "collection.movie", format: "html", file: "movie.collection.html.j2" }
@@ -38,9 +40,9 @@ templates:
   - { type: "collection.artist", format: "html", file: "music.collection.html.j2" }
   - { type: "collection.atist", format: "json", file: "music.collection.json.j2", subFolder: "json" }
 
-  - { type: "collection.report", format: "yaml", file: "report.collection.yaml.j2" }
-  - { type: "collection.report", format: "html", file: "report.collection.html.j2" }
-  - { type: "collection.report", format: "json", file: "report.collection.json.j2", subFolder: "json" }
+  # - { type: "collection.report", format: "yaml", file: "report.collection.yaml.j2" }
+  # - { type: "collection.report", format: "html", file: "report.collection.html.j2" }
+  # - { type: "collection.report", format: "json", file: "report.collection.json.j2", subFolder: "json" }
 
   - { type: "collection.template", "format": "yaml", "file": "template.collection.yaml.j2" }
 
@@ -57,9 +59,9 @@ templates:
   - { type: "metadata.artist", format: "html", file: "music.metadata.html.j2" }
   - { type: "metadata.artist", format: "json", file: "music.metadata.json.j2", subFolder: "json" }
 
-  - { type: "metadata.report", format: "yaml", file: "report.metadata.yaml.j2" }
-  - { type: "metadata.report", format: "html", file: "report.metadata.html.j2" }
-  - { type: "metadata.report", format: "json", file: "report.metadata.json.j2", subFolder: "json" }
+  # - { type: "metadata.report", format: "yaml", file: "report.metadata.yaml.j2" }
+  # - { type: "metadata.report", format: "html", file: "report.metadata.html.j2" }
+  # - { type: "metadata.report", format: "json", file: "report.metadata.json.j2", subFolder: "json" }
 
   overlay:
   - { type: "overlay.movie", format: "yaml", file: "movie.overlay.yaml.j2" }
@@ -74,9 +76,9 @@ templates:
   - { type: "overlay.artist", format: "html", file: "music.overlay.html.j2" }
   - { type: "overlay.artist", format: "json", file: "music.overlay.json.j2", subFolder: "json" }
 
-  - { type: "overlay.report", format: "yaml", file: "report.overlay.yaml.j2" }
-  - { type: "overlay.report", format: "html", file: "report.overlay.html.j2" }
-  - { type: "overlay.report", format: "json", file: "report.overlay.json.j2", subFolder: "json" }
+  # - { type: "overlay.report", format: "yaml", file: "report.overlay.yaml.j2" }
+  # - { type: "overlay.report", format: "html", file: "report.overlay.html.j2" }
+  # - { type: "overlay.report", format: "json", file: "report.overlay.json.j2", subFolder: "json" }
 
   # report:
   # - { type: "report.any", format: "yaml", file: "report.yaml.j2" }
@@ -89,8 +91,10 @@ output:
   sharedTemplatePathFormat: "{{library.path}}/_templates"
 
   fileNameFormat:
+    library: "{{library.title}}"
     collections: "{{universe}} - {{collection.title}}"
     metadata: "{{universe}} - {{item.title}} ({{item.year}}) [{{item.editionTitle}}]"
+    libraryReport: "{{library.title}} - Report"
     collectionsReport: "{{library.title}} - Collection Report"
     metadataReport: "{{library.title}} - Metadata Report"
     report: "{{library.title}} - Report"

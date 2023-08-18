@@ -53,3 +53,5 @@ def setup_logging(
         logging.basicConfig(level=default_level)
         coloredlogs.install(level=default_level)
         print("Failed to load configuration file. Using default configs")
+
+    logging.getLogger("plexapi").setLevel(logging.ERROR)

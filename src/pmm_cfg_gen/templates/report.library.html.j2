@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Plex Library Collection Report: {{ library.title }}</title>
+
+    <!-- Bootstrap and Datatables CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css" rel="stylesheet"> 
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/fixedheader/3.4.0/css/fixedHeader.bootstrap5.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.bootstrap5.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/scroller/2.2.0/css/scroller.bootstrap5.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <style>
+        body { font-size: .875rem; }
+
+        .feather { 
+            width: 16px;
+            height: 16px;
+            vertical-align: text-bottom;
+        }
+
+        /*
+        * Sidebar
+        */
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            /* rtl:raw:
+            right: 0;
+            */
+            bottom: 0;
+            /* rtl:remove */
+            left: 0;
+            z-index: 100; /* Behind the navbar */
+            padding: 48px 0 0; /* Height of navbar */
+            box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+        }
+
+        @media (max-width: 767.98px) {
+            .sidebar {
+                top: 5rem;
+            }
+        }
+
+        .sidebar-sticky {
+            position: relative;
+            top: 0;
+            height: calc(100vh - 48px);
+            padding-top: .5rem;
+            overflow-x: hidden;
+            overflow-y: auto; /* Scrollable contents if viewport is shorter than content. */
+        }
+
+        .sidebar .nav-link {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .sidebar .nav-link .feather {
+            margin-right: 4px;
+            color: #727272;
+        }
+
+        .sidebar .nav-link.active {
+            color: #2470dc;
+        }
+
+        .sidebar .nav-link:hover .feather, .sidebar .nav-link.active .feather {
+            color: inherit;
+        }
+
+        .sidebar-heading {
+            font-size: .75rem;
+            text-transform: uppercase;
+        }
+
+        /*
+        * Navbar
+        */
+
+        .navbar-brand {
+            padding-top: .75rem;
+            padding-bottom: .75rem;
+            font-size: 1rem;
+            background-color: rgba(0, 0, 0, .25);
+            box-shadow: inset -1px 0 0 rgba(0, 0, 0, .25);
+        }
+
+        .navbar .navbar-toggler {
+            top: .25rem;
+            right: 1rem;
+        }
+
+        .navbar .form-control {
+            padding: .75rem 1rem;
+            border-width: 0;
+            border-radius: 0;
+        }
+
+        .form-control-dark {
+            color: #fff;
+            background-color: rgba(255, 255, 255, .1);
+            border-color: rgba(255, 255, 255, .1);
+        }
+
+        .form-control-dark:focus {
+            border-color: transparent;
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, .25);
+        }
+
+        .footer { 
+            position: absolute;
+            width: 100%;
+            bottom: 0px;
+            left: 0;
+        }
+                  
+        .tpdbimage { max-width: 200px; max-height: 250px; object-fit: cover;  }
+        .tpdbTitle { display:block; padding-top: 15px; font-size: 12px; font-weight: 900; color: #e3fc00; }
+        .tooltip { position:absolute; z-index:1020; display:block; visibility:visible; padding:5px; font-size:13px; opacity:0; filter:alpha(opacity=0) }
+        .tooltip.in{ opacity:.8; filter:alpha(opacity=80) }
+        .tooltip-inner { 
+            padding-top: 25px;
+            padding-right: 15px;
+            padding-bottom: 10px;
+            padding-left:15px;
+
+            color:#314A5B;
+            text-align:center;
+            font-weight:900;
+            background: -webkit-gradient(linear, left top, left 25, from(#FFFFFF), color-stop(4%, #A2BBCC), to(#000000)); 
+            background: -moz-linear-gradient(top, #FFFFFF, #A2BBCC 1px, #FFFFFF 25px); 
+            -webkit-border-radius:5px;
+            -moz-border-radius:5px;
+            border-radius:5px;
+            border: 1px solid #314A5B;
+        }
+        
+        .tooltip-arrow{ position:absolute; width:0; height:0; }
+        .table-hover tbody tr:hover { background-color: var(--bs-table-accent-bg); }
+
+    </style>
+
+</head>
+
+<body>
+    <header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow">
+        <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3" href="#">Plex Report</a>    
+        <div class="col-md-6 col-lg-3 me-0 px-3">
+            <h6 class="text-white">Library: {{ library.title }}</h6>
+        </div>
+        <div class="navbar-nav">
+            <div class="nav-item text-nowrap">
+                <a class="nav-link px-3" href="#">Collections</a>
+            </div>
+        </div>
+    </header>
+
+    <div class="container-fluid">
+        <div class="row">
+            <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+                <div class="position-sticky pt-3">
+                  <ul class="nav flex-column">
+                    <li class="nav-item">
+                      <a class="nav-link" aria-current="page" href="#">
+                        <i class="bi bi-speedometer2"></i>
+                        <span data-feather="home"></span>
+                        Dashboard
+                      </a>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link active pe-none" data-bs-toggle="collapse" href="#container-collections">
+                        <i class="bi bi-collection-play"></i>
+                        <span data-feather="collections"></span>
+                        collections
+                      </a>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link" data-bs-toggle="collapse" href="#container-media">
+                        <i class="bi bi-film"></i>
+                        <span data-feather="items"></span>
+                        items
+                      </a>
+                    </li>
+                  </ul>
+                </div>
+                <div class="footer py-3 container">
+                    <div class="container">
+                        <div class="card-group"></div>
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title font-weight-bold">Statistics</h5>
+                                    <div class="container">
+                                        {% if stats.collections.total > 0 %}
+                                        <div class="row row-cols-2">
+                                            <div class="col">Collections</div>
+                                            <div class="col">
+                                                <div class="progress">
+                                                    <div class="progress-bar" role="progressbar" style="width: {{ stats.collections.percentage | default(0, true) }}%;" aria-valuenow="{{ stats.collections.percentage | default(0, true) }}" aria-valuemin="0" aria-valuemax="100">{{ stats.collections.processed }}/{{ stats.collections.total }} </div>
+                                                </div>                                            
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                        {% if stats.videos.total > 0 %}
+                                        <div class="row row-cols-2">
+                                            <div class="col">Items</div>
+                                            <div class="col">
+                                                <div class="progress">
+                                                    <div class="progress-bar" role="progressbar" style="width: {{ stats.videos.percentage | default(0, true) }}%;" aria-valuenow="{{ stats.videos.percentage | default(0, true) }}" aria-valuemin="0" aria-valuemax="100">{{ stats.videos.processed }}/{{ stats.videos.total }} </div>
+                                                </div>                                            
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-1 mb-1 border-bottom">
+                                        </div>
+                                        <div class="row row-cols-2">
+                                            <div class="col">Totals</div>
+                                            <div class="col">
+                                                <div class="progress">
+                                                    <div class="progress-bar" role="progressbar" style="width: {{ stats.totals.percentage | default(0, true) }}%;" aria-valuenow="{{ stats.totals.percentage | default(0, true) }}" aria-valuemin="0" aria-valuemax="100">{{ stats.totals.processed }}/{{ stats.totals.total }} </div>
+                                                </div>                                            
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {# <div class="card-footer">{{ stats | formatJson }} </div> #}
+                            </div>                
+
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title font-weight-bold">Elapised Time</h6>
+                                    <div class="container">{{ processingTime.elapsed.days }} d, {{ processingTime.elapsed.hours }} h, {{ processingTime.elapsed.minutes }} m, {{ processingTime.elapsed.seconds }} s</div>
+                                </div>
+                            </div>                            
+                        </div>
+                    </div>
+                </div>
+            </nav>   
+            
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3">
+                </div>
+
+                <div id="container-data">
+                    <div id="container-collections" class="table-responsive collapse.show" data-bs-parent="#container-data">
+                        <table id="table-collections" data-page-length="25" data-show-search-clear-button="true" class="table table-bordered table-hover table-striped">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th scope="col" data-field="id" data-filter-control="select">#</th>
+                                    <th scope="col" data-field="type" data-filter-control="select">type</th>
+                                    <th scope="col" data-field="title" data-filter-control="input">title</th>
+                                    <th scope="col" data-field="tpdb">tpdb</th>
+                                    <th scope="col" data-field="tmdb">tmdb</th>
+                                    <th scope="col" data-field="tvdb">tvdb</th>
+                                    <th scope="col" data-field="imdb">imdb</th>
+                                    <th scope="col" data-field="trakt">trakt</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in collections %}
+                                <tr>
+                                    <td scope="row">{{ loop.index }} </td>
+                                    <td scope="row">{{ item.metadata.subtype }} </td>
+                                    <td scope="row">{{ item.title }} </td>
+                                    <td scope="row"><a target="_blank" href="{{item.searchUrl}}" {% if item.pmm.poster %}data-toggle="tooltip" data-placement="top" data-html="true" title="<div><img class='tpdbimage' src='{{ item.pmm.poster }}'><span class='tpdbTitle'>{{ item.pmm.poster }}</span></div>"{% endif %}>Search thePosterDb{% if item.pmm.poster %} [*]{% endif %}</a></td>
+                                    <td scope="row"><a target="_blank" href="https://www.themoviedb.org/search/collection?query={{ item.title | urlencode}}">Search theMovieDb</a></td>
+                                    <td scope="row"><a target="_blank" href="https://thetvdb.com/search?menu%5Btype%5D=list&query={{ item.title | urlencode }}">Search tvDb</a></td>
+                                    <td scope="row"><a target="_blank" href="https://www.imdb.com/find/?s=tt{% if item.subtype == 'movie' %}&ttype=ft{% elif item.subtype == 'show' %}&ttype=tv{% endif %}&q={{ item.title | urlencode }}">Search IMDb</a></td>
+                                    <td scope="row"><a target="_blank" href="https://trakt.tv/search/lists?query={{ item.metadata.title | urlencode }}">Search trakt</a></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div id="container-media" class="table-responsive collapse" data-bs-parent="#container-data">
+                        <table id="table" data-filter-control="true" data-page-length="25" data-show-search-clear-button="true" class="table table-bordered table-hover table-striped">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th scope="col" data-field="id" data-filter-control="select">#</th>
+                                    <th scope="col" data-field="type" data-filter-control="select">type</th>
+                                    <th scope="col" data-field="title" data-filter-control="input">title</th>
+                                    <th scope="col" data-field="collection" data-filter-control="select">collection</th>
+                                    <th scope="col" data-field="tpdb">tpdb</th>
+                                    <th scope="col" data-field="tmdb">tmdb</th>
+                                    <th scope="col" data-field="tvdb">tvdb</th>
+                                    <th scope="col" data-field="imdb">imdb</th>
+                                    <th scope="col" data-field="trakt">trakt</th>
+                                    <th scope="col">ids</th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in items %}
+                                <tr>
+                                    <td scope="row">{{ loop.index }}</td>
+                                    <td scope="row">{{ item.metadata.type }}</td>
+                                    <td scope="row">{{ item.title }}</td>
+                                    <td scope="row">{{ item.metadata.collections | map(attribute="tag") | list | first }}</td>
+                                    <td scope="row"><a target="_blank" href="{{item.searchUrl}}" {% if item.pmm.poster %}data-toggle="tooltip" data-placement="top" data-html="true" title="<div><img class='tpdbimage' src='{{ item.pmm.poster }}'><span class='tpdbTitle'>{{ item.pmm.poster }}</span></div>"{% endif %}>Search thePosterDb{% if item.pmm.poster %} [*]{% endif %}</a></td>
+                                    <td scope="row">{% if item.metadata | getItemGuidByName("tmdb") | default("", true) | length > 0 %}<a target="_blank" href="https://www.themoviedb.org/{% if item.metadata.type == 'movie' %}movie{% elif item.metadata.type == 'show' %}tv{% else %}{% endif %}/{{ item.metadata | getItemGuidByName('tmdb') }}">Search theMovieDb</a>{% endif %}</td>
+                                    <td scope="row">{% if item.metadata | getItemGuidByName("tvdb") | default("", true) | length > 0 %}<a target="_blank" href="https://thetvdb.com/search?menu%5Btype%5D={% if item.metadata.type == 'movie' %}movie{% elif item.metadata.type == 'show' %}series{% else %}{% endif %}&menu%5Byear%5D={{ item.metadata.year }}&query={{ item.metadata | getItemGuidByName('tvdb') }}">Search tvDb</a>{% endif %}</td>
+                                    <td scope="row">{% if item.metadata | getItemGuidByName("imdb") | default("", true) | length > 0 %}<a target="_blank" href="https://www.imdb.com/title/{{ item.metadata | getItemGuidByName('imdb') }}">Search imDb</a>{% endif %}</td>
+                                    <td scope="row"><a target="_blank" href="https://trakt.tv/search/{% if item.metadata.type == 'movie'%}movies{% elif item.metadata.type == 'show' %}shows{% else %}{% endif %}?query={{ item.metadata.title | urlencode }}">Search trakt</a></td>
+                                    <td scope="row">{% for key, value in item.ids.items() %} {{ key }}:{{ value }} {% if not loop.last %}, {% endif %}{% endfor %}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Bootstrap and DataTables bundled JS -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/fixedheader/3.4.0/js/dataTables.fixedHeader.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/responsive.bootstrap5.js"></script>
+    <script src="https://cdn.datatables.net/scroller/2.2.0/js/dataTables.scroller.min.js"></script>
+
+    <script>
+        $(function () {
+            $('a[data-toggle="tooltip"]').tooltip({
+                boundary: 'window',
+                animated: 'fade',
+                placement: 'bottom',
+                html: true
+            });
+          })
+
+        $('#table-collections').DataTable({
+            fixedHeader: true,
+            responsive: true,   
+            scrollY: '70vh',
+            scroller: true
+        })
+
+        $(".nav .nav-link").on("click", function(){
+            $(".nav").find(".active").removeClass("active").removeClass("pe-none").removeAttr('disabled');
+            $(this).addClass("active").addClass("pe-none").addAttr('disabled');
+        });
+    </script>
+</body>

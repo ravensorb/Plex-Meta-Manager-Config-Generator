@@ -173,6 +173,8 @@ class PlexLibraryProcessor:
         self._logger.info("Processing Library Collections")
         collections = self.plexLibrary.collections()
 
+        self._logger.info(f"Collections - Tota: {len(collections)}")
+
         self.__stats.countsLibraries[self.plexLibrarySettings.name].collections.total = len(collections)
         self.__stats.countsLibraries[self.plexLibrarySettings.name].collections.processed = 0
 
@@ -189,6 +191,8 @@ class PlexLibraryProcessor:
         self._logger.info("Processing Library Items")
         items = self.plexLibrary.all()
 
+        self._logger.info(f"Items - Total: {len(items)}")
+
         self.__stats.countsLibraries[self.plexLibrarySettings.name].items.total = len(items)
         self.__stats.countsLibraries[self.plexLibrarySettings.name].items.processed = 0
         self.__stats.countsLibraries[self.plexLibrarySettings.name].calcTotals()
@@ -202,12 +206,15 @@ class PlexLibraryProcessor:
         self.__stats.timerLibraries[self.plexLibrarySettings.name].stop()
 
         self.__stats.countsLibraries[self.plexLibrarySettings.name].calcTotals()
+        self.__stats.calcTotals()
 
         self._logger.info("-" * 50)        
         self._sortCache()
-        self._saveCollectionReport()
-        self._saveItemReport()
-        #self._saveReport()
+        #self._saveCollectionReport()
+        #self._saveItemReport()
+        self._saveReport("library", globalSettingsMgr.settings.output.fileNameFormat.libraryReport)
+        self._saveReport("collection", globalSettingsMgr.settings.output.fileNameFormat.collectionsReport)
+        self._saveReport("metadata", globalSettingsMgr.settings.output.fileNameFormat.metadataReport)
 
     def _processCollection(self, itemTitle: str, item):
         self.__stats.countsLibraries[self.plexLibrarySettings.name].collections.processed += 1
@@ -581,21 +588,7 @@ class PlexLibraryProcessor:
 
                     if not os.path.exists(fileName) or globalSettingsMgr.settings.output.overwrite:
                         self.templateManager.renderAndSave(
-                            tplFile.fileName, fileName, tplArgs={
-                                                                "library": self.plexLibrary,
-                                                                "items": self.__collectionProcessedCache[self.plexLibrarySettings.name],
-                                                                "stats": json.loads(
-                                                                    str(
-                                                                        jsonpickle.dumps(
-                                                                            self.__stats.countsLibraries[self.plexLibrarySettings.name],
-                                                                            unpicklable=False,
-                                                                        )
-                                                                    )
-                                                                ),
-                                                                "processingTime": self.__stats.timerLibraries[
-                                                                    self.plexLibrarySettings.name
-                                                                ].to_dict()
-                                                            }
+                            tplFile.fileName, fileName, tplArgs=self._getTemplateArgs()
                         )
                     else:
                         self._logger.warn("  Report File Name '{}' Exists. Skipping...".format(fileNameBase))
@@ -634,21 +627,7 @@ class PlexLibraryProcessor:
 
                     if not os.path.exists(fileName) or globalSettingsMgr.settings.output.overwrite:
                         self.templateManager.renderAndSave(
-                            tplFile.fileName, fileName, tplArgs={
-                                                                "library": jsonpickle.dumps(self.plexLibrary, unpicklable=False),
-                                                                "items": self.__itemProcessedCache[self.plexLibrarySettings.name],
-                                                                "stats": json.loads(
-                                                                    str(
-                                                                        jsonpickle.dumps(
-                                                                            self.__stats.countsLibraries[self.plexLibrarySettings.name],
-                                                                            unpicklable=False,
-                                                                        )
-                                                                    )
-                                                                ),
-                                                                "processingTime": self.__stats.timerLibraries[
-                                                                    self.plexLibrarySettings.name
-                                                                ].to_dict(),                        
-                                                            }
+                            tplFile.fileName, fileName, tplArgs=self._getTemplateArgs()
                         )
                     else:
                         self._logger.warn("  Report File Name '{}' Exists. Skipping...".format(fileNameBase))
@@ -657,28 +636,31 @@ class PlexLibraryProcessor:
             except:
                 self._logger.exception("Failed generating item report: '{}'".format(tplFile.fileName))
 
-    def _saveReport(self):
-        if not globalSettingsMgr.settings.generate.isTypeEnabled("report.any"):
-            self._logger.debug("Skipping Saving Report...")
+    def _saveReport(self, reportGroup : str, outputFormatString : str):
+        if not globalSettingsMgr.settings.generate.isTypeEnabled("report.any") and not globalSettingsMgr.settings.generate.isTypeEnabled(f"{reportGroup}.report"):
+            self._logger.info(f"Skipping Saving {reportGroup} Report...")
             return
 
-        self._logger.info("Saving Report...")
+        self._logger.info(f"Saving {reportGroup} Report...")
 
-        tplFiles = globalSettingsMgr.settings.templates.getTemplateByGroupAndLibraryType("report", SettingsTemplateLibraryTypeEnum.REPORT)
+        tplFiles = globalSettingsMgr.settings.templates.getTemplateByGroupAndLibraryType(reportGroup, SettingsTemplateLibraryTypeEnum.REPORT)
         if tplFiles is None:
-            self._logger.warn("No Report Templates defined")
+            self._logger.warn("No Item Report Templates for type '{}' specifed".format(self.plexLibrary.type))
 
             return
                     
         self._logger.debug(
-            "Template Files for Report: {}".format(jsonpickle.dumps(tplFiles, unpicklable=False))
+            "Template Files for Report Type '{}': {}".format(self.plexLibrary.type, jsonpickle.dumps(tplFiles, unpicklable=False))
         )
 
-        fileNameBase = PlexItemHelper.formatString(globalSettingsMgr.settings.output.fileNameFormat.report, library=self.plexLibrary, collection=None, item=None, cleanTitleStrings=True)
+        fileNameBase = PlexItemHelper.formatString(outputFormatString, library=self.plexLibrary, collection=None, item=None, cleanTitleStrings=True)
 
         for tplFile in tplFiles:
             try:
+                self._logger.debug("Processing Report Template: '{}'".format(tplFile.fileName))
+                
                 if globalSettingsMgr.settings.generate.isFormatEnabled(tplFile.format) and globalSettingsMgr.settings.generate.isTypeEnabled(tplFile.type):
+                    self._logger.info("  Generating format '{}' for Report".format(tplFile.format))
                     
                     if tplFile.subFolder is not None:
                         fileName = Path(self.pathLibrary, "reports", tplFile.subFolder, "{}.{}".format(fileNameBase, tplFile.fileExtension))
@@ -687,27 +669,12 @@ class PlexLibraryProcessor:
 
                     if not os.path.exists(fileName) or globalSettingsMgr.settings.output.overwrite:
                         self.templateManager.renderAndSave(
-                            tplFile.fileName, fileName, tplArgs={
-                                                                "library": jsonpickle.dumps(self.plexLibrary, unpicklable=False),
-                                                                "collections": self.__collectionProcessedCache[self.plexLibrarySettings.name],
-                                                                "items": self.__itemProcessedCache[self.plexLibrarySettings.name],
-                                                                "stats": json.loads(
-                                                                    str(
-                                                                        jsonpickle.dumps(
-                                                                            self.__stats.countsLibraries[self.plexLibrarySettings.name],
-                                                                            unpicklable=False,
-                                                                        )
-                                                                    )
-                                                                ),
-                                                                "processingTime": self.__stats.timerLibraries[
-                                                                    self.plexLibrarySettings.name
-                                                                ].to_dict(),                        
-                                                            }
+                            tplFile.fileName, fileName, tplArgs=self._getTemplateArgs()
                         )
                     else:
                         self._logger.warn("  Report File Name '{}' Exists. Skipping...".format(fileNameBase))
                 else:
-                    self._logger.debug("  Generating format '{}' for Report is not enabled. Skipping...".format(tplFile.format))
+                    self._logger.info("  Generating format '{}' for Report is not enabled. Skipping...".format(tplFile.format))
             except:
                 self._logger.exception("Failed generating report: '{}'".format(tplFile.fileName))
 
@@ -769,6 +736,15 @@ class PlexLibraryProcessor:
                 
         self._logger.info("-" * 50)
 
+    def _getTemplateArgs(self):
+        return {
+            "library": self.plexLibrary,
+            "collections": self.__collectionProcessedCache[self.plexLibrarySettings.name],
+            "items": self.__itemProcessedCache[self.plexLibrarySettings.name],
+            "stats": self.__stats.countsLibraries[self.plexLibrarySettings.name].toJson(),
+            "processingTime": self.__stats.timerLibraries[self.plexLibrarySettings.name].to_dict()
+        }
+        
     # def _unlockAllLibraryFields(self):
 
     #     #self._logger.debug("Possible Fields: {}".format(self.plexLibrary.listFields(self.plexLibrary.type)))
