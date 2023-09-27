@@ -28,10 +28,11 @@ collections:
     # imdb: https://www.imdb.com/find/?s=tt{% if item.metadata.subtype == 'movie' %}&ttype=ft{% elif item.metadata.subtype == 'show' %}&ttype=tv{% endif %}&q={{ item.metadata.title | urlencode }}
     # trakt: https://trakt.tv/search/lists?query={{ item.metadata.title | urlencode }}
     {% if item.metadata.childCount != 1 %}# {% endif %}collection_mode: hide
-    {% if not item.pmm.trakt %}# {% endif %}trakt_list:
-    {%- if not item.pmm.trakt %}
+    {%- set lstTrakt = item.pmm.trakt | unique | select('!=', '') | list %}
+    {% if not lstTrakt %}# {% endif %}trakt_list:
+    {%- if not lstTrakt %}
     #   -{% else %}
-    {%- for t in item.pmm.trakt %}
+    {%- for t in lstTrakt %}
        - {{ t }} {% endfor %}{% endif %}
 
 ########################################################################################################################

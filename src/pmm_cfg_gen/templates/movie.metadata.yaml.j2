@@ -16,6 +16,12 @@ metadata:
         sort_title: "{{ item.metadata.titleSort }}"{% endif %}
         {%- if item.metadata.editionTitle and item.metadata.editionTitle | length > 0 %}
         edition_filter: {{ item.metadata.editionTitle }}{% endif %}
+        {%- set idIMDB = item.metadata | getItemGuidByName("imdb") | default("") %}
+        {%- set idTMDB = item.metadata | getItemGuidByName("tmdb") | default("") %}
+        {%- if idIMDB | length > 0 or idTMDB | length > 0 %}
+        match:
+          mapping_id: {{ idTMDB if idTMDB | length > 0 else idIMDB }}
+        {%- endif %}
         {% if not item.pmm.poster %}# {% endif %}url_poster: {{ item.pmm.poster | default(settings.thePosterDatabase.dbAssetUrl, True) }}
         # IDs: {{ item.metadata.guids | map(attribute="id") | list | join(', ')}}
         # tpdb: {{ item.metadata | generateTpDbSearchUrl }}
