@@ -1,10 +1,10 @@
 collections:
   "{{ item.metadata.title }}":
-    {%- set lstCollection = item.pmm.collection | unique | join(", ") %}
-    {%- set lstList = item.pmm.list | unique | join(", ") | default("") %}
-    {%- set lstShow = item.metadata | getCollectionGuidsByName("tmdb") | concat(item.pmm.show) | unique | join(", ") %}
+    {%- set lstCollection = item.pmm.collection | unique  | sort | join(", ") %}
+    {%- set lstList = item.pmm.list | unique  | sort | join(", ") | default("") %}
+    {%- set lstShow = item.metadata | getCollectionGuidsByName("tmdb") | concat(item.pmm.show) | unique  | sort | join(", ") %}
     {%- set lstMovie = "" %}
-    {%- set lstLabels = item.metadata | getNamedCollectionLabels | concat(item.pmm.label) | unique | join(", ") %}
+    {%- set lstLabels = item.metadata | getNamedCollectionLabels | concat(item.pmm.label) | unique  | sort | join(", ") %}
     variables: { 
       {%- if lstLabels %} label: "{{ lstLabels }}",{% endif %}
       {%- if item.pmm and item.pmm.sort.prefix %} sort_prefix: "{{item.pmm.sort.prefix}}",{% endif %}

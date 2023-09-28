@@ -4,12 +4,14 @@
 import logging
 
 import jsonpickle.handlers
+import json
 from plexapi.base import PlexObject, PlexPartialObject
 from plexapi.library import LibrarySection
 from plexapi.collection import Collection
 from plexapi.video import Video, Movie, Show
 from plexapi.audio import Artist
 from plexapi.server import PlexServer
+import plexapi.utils
 import re
 
 from pmm_cfg_gen.utils.settings_utils_v1 import SettingsPlexLibrary, globalSettingsMgr
@@ -31,18 +33,25 @@ class PlexJsonHandler(jsonpickle.handlers.BaseHandler):
         # Set the _baseurl attribute of obj to the PlexServer.
         if isinstance(obj, PlexServer):
             setattr(obj, "_baseurl", globalSettingsMgr.settings.plex.serverUrl)
+
+        if hasattr(obj, "toJson") and callable(getattr(obj, "toJson")) and False:
+            data = json.loads(plexapi.utils.toJson(obj)) # This doesn't get all of the childern objects correctly
+        else:
         # remove methods, private fields etc
-        members = [
-            attr
-            for attr in dir(obj)
-            if not callable(getattr(obj, attr))
-            and not attr.startswith("__")
-            and not attr.startswith("_")
-        ]
-        # flatten all members of the class and add them to data
-        for normal_field in members:
-            # we use context flatten - so its called handlers for given class
-            data[normal_field] = self.context.flatten(getattr(obj, normal_field), {})
+            members = []
+
+            for attr in dir(obj):
+                try:
+                    if not callable(getattr(obj, attr)) and not attr.startswith("__") and not attr.startswith("_"):
+                        members.append(attr)
+                except AttributeError:
+                    pass
+                
+            # flatten all members of the class and add them to data
+            for normal_field in members:
+                # we use context flatten - so its called handlers for given class
+                data[normal_field] = self.context.flatten(getattr(obj, normal_field), {})
+
         return data
 
     def restore(self, obj):

@@ -182,7 +182,7 @@ def generateTpDbSearchUrl(item, baseUrl=None) -> str:
 
     # logging.getLogger("pmm-cfg-gen").info(urlParms)
 
-    urlQS = urllib.parse.urlencode(urlParms)
+    urlQS = urllib.parse.urlencode(urlParms, quote_via=urllib.parse.quote)
 
     req = requests.PreparedRequest()
     req.prepare_url(baseUrl, urlQS)

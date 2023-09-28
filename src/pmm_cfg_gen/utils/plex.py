@@ -425,7 +425,7 @@ class PlexLibraryProcessor:
 
         # Do we have anything we need to process
         if len(itemsWithExtras) > 0:
-            sorted(itemsWithExtras, key=lambda x: x["metadata"].year if "year" in x["metadata"].__dict__ else 0)
+            sorted(itemsWithExtras, key=lambda x: x["metadata"].year if x and "year" in x["metadata"].__dict__ else 0)
 
             for tplFile in tplFiles:
                 try:
@@ -684,7 +684,7 @@ class PlexLibraryProcessor:
         self._logger.info("-" * 50)
 
     def _displayStats(self):
-        # self._logger.debug(json.dumps(self.__timers, indent=4, unpicklable=False))
+        # self._logger.debug(json.dumps(self.__timers, indent=428, unpicklable=False))
 
         self._logger.info("-" * 50)
 
