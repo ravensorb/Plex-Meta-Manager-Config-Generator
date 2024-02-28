@@ -1,0 +1,28 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Application",
+            "type": "python",
+            "request": "launch",
+            "python": "${workspaceRoot}/.venv/bin/python",
+            "cwd": "/home/sanderson/Documents/pmm-cfg",
+            "module": "pmm_cfg_gen",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [ 
+                "pmm_cfg_gen:cli",
+                "--host",
+                "0.0.0.0",
+                "--port",
+                "8080",
+                "--reload",
+                "-pmm.deltaOnly", 
+                "--logLevel DEBUG"
+            ]
+        }
+    ]
+}

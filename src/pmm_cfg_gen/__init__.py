@@ -4,6 +4,7 @@
 
 import logging
 import os
+import sys
 import readchar
 import signal
 import jsonpickle
@@ -28,6 +29,7 @@ def handler(signum, frame):
         print("")
         os._exit(1)
     else:
+        sys.stdin.flush()
         print("", end="\r", flush=True)
         print(" " * len(msg), end="", flush=True)  # clear the printed line
         print("    ", end="\r", flush=True)
@@ -39,6 +41,7 @@ signal.signal(signal.SIGINT, handler)
 
 setup_logging(
     str(globalSettingsMgr.modulePath.joinpath("logging.yaml")),
+    default_level=getattr(logging, globalArgs.logLevel)
 )
 
 logger = logging.getLogger("pmm_cfg_gen")

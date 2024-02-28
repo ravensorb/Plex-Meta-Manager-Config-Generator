@@ -8,6 +8,9 @@ import os
 
 import coloredlogs
 import yaml
+import traceback
+
+import logging_tree
 
 ###################################################################################################
 
@@ -44,14 +47,27 @@ def setup_logging(
             try:
                 config = yaml.safe_load(f.read())
                 logging.config.dictConfig(config)
+                logging.getLogger().setLevel(default_level)
+                #coloredlogs.install()
             except Exception as e:
-                print(e)
                 print("Error in Logging Configuration. Using default configs")
-                logging.basicConfig(level=default_level)
+                traceback.print_exc() 
+                #print(f"\tType: {type(e).__name__}\n\tMessage: {e}\n\tTrace: {e.__traceback__}")
+
+                #logging.basicConfig(level=default_level)
                 coloredlogs.install(level=default_level)
     else:
-        logging.basicConfig(level=default_level)
+        #logging.basicConfig(level=default_level)
         coloredlogs.install(level=default_level)
         print("Failed to load configuration file. Using default configs")
 
+    for handler in logging.getLogger().handlers:
+        if isinstance(handler, type(logging.StreamHandler())):
+            handler.setLevel(logging.DEBUG)
+
+    if logging.getLogger().getEffectiveLevel() == logging.DEBUG:
+        #print(logging.getLogger().__dict__)
+        logging_tree.printout()
+    
+    # Disable plexapi logging for anything but ERROR
     logging.getLogger("plexapi").setLevel(logging.ERROR)

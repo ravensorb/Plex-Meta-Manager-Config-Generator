@@ -6,7 +6,7 @@
 
 
 [ -z "$DOCKER_IMAGETAG" ]        && DOCKER_IMAGETAG=latest
-[ -z "$DOCKER_VERSIONTAG" ]      && DOCKER_VERSIONTAG="1.0"
+# [ -z "$DOCKER_VERSIONTAG" ]      && DOCKER_VERSIONTAG="1.0"
 
 [ -z "$DOCKER_REGISTRY" ]        && DOCKER_REGISTRY="docker.io"
 
@@ -23,8 +23,8 @@
 #############################################################################################################
 # In case git isn't initialized
 [ -z "$SOURCE_BRANCH" ]          && SOURCE_BRANCH="main"
-[ -z "$DOCKER_VERSIONTAG" ]      && DOCKER_VERSIONTAG="0.0.1"
-[ -z "$GIT_VERSION" ]            && GIT_VERSION="0.0.1"
+# [ -z "$DOCKER_VERSIONTAG" ]      && DOCKER_VERSIONTAG="0.0.1"
+# [ -z "$GIT_VERSION" ]            && GIT_VERSION="0.0.1"
 
 #############################################################################################################
 #############################################################################################################
@@ -128,6 +128,12 @@ while getopts "ha:i:r:u:f:t:p:v:m" option; do
 done
 
 #############################################################################################################
+
+[[ -z "$VERSION" && -n "$GIT_VERSION" ]] && VERSION=$GIT_VERSION
+[[ -z "$VERSION" && -n "$DOCKER_VERSION" ]] && VERSION=$DOCKER_VERSION
+
+[[ -z "$VERSION" ]] && VERSION="0.0.1"
+
 #############################################################################################################
 
 echo "Active settings:"
@@ -168,6 +174,7 @@ function docker_build()
 
     tar -czh $docker_context | docker \
         $build_mode \
+        {$debug:+--progress plain} \
         --network host \
         --no-cache \
         --force-rm \
@@ -218,7 +225,7 @@ if [[ "$ACTION" == *"build"* ]]; then
         "." \
         "ravensorb/pmm-cfg-gen" \
         "$DOCKER_IMAGETAG" \
-        "$DOCKER_VERSIONTAG" \
+        "$VERSION" \
         "$GIT_SHA1_SHORT" 
 fi
 
@@ -227,7 +234,7 @@ if [[ "$ACTION" == *"publish"* ]]; then
     docker_publish \
         "ravensorb/pmm-cfg-gen" \
         "$DOCKER_IMAGETAG" \
-        "$DOCKER_VERSIONTAG" \
+        "$VERSION" \
         "$GIT_SHA1_SHORT" \
         "$DOCKER_REGISTRY"
 fi

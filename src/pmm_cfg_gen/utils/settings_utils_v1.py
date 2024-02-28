@@ -113,6 +113,7 @@ class SettingsPmmDefaults:
         self.deltaOnly = deltaOnly
         self.basePath = expandvars(basePath.strip()) if basePath is not None else None        
 
+
 class SettingsPlexLibrary:
     name: str
     path: str | None

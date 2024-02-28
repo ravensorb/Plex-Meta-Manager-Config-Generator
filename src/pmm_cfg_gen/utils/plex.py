@@ -300,6 +300,9 @@ class PlexLibraryProcessor:
                                 }
                             } 
                         )
+
+                        self._logger.debug("\t\tAdding Collection to Processed Cache: {}".format(PlexItemHelper.formatItemTitle(item)))
+                        self.__stats.itemsLibraries[self.plexLibrarySettings.name].addCollection(PlexItemHelper.formatItemTitle(item), str(fileName))
                     else:
                         self._logger.warn("\tCollection File Name '{}' Exists. Skipping...".format(fileNameBase))
                 else:
@@ -443,6 +446,10 @@ class PlexLibraryProcessor:
                                     "items": itemsWithExtras 
                                 } 
                             )
+
+                            self._logger.debug("  Adding Metadata to Processed Cache: {}".format(PlexItemHelper.formatItemTitle(itemsWithExtras[0]["metadata"])))
+                            self.__stats.itemsLibraries[self.plexLibrarySettings.name].addItem(PlexItemHelper.formatItemTitle(itemsWithExtras[0]["metadata"]), str(fileName))
+                            
                         else:
                             self._logger.warn("  Metadata File Name '{}.{}' Exists. Skipping...".format(fileNameBase, tplFile.fileExtension))
                     else:
@@ -475,6 +482,7 @@ class PlexLibraryProcessor:
             }
 
             self.__collectionProcessedCache[self.plexLibrarySettings.name].append(tpdbEntry)
+            
 
     def _isItemProcessed(self, item) -> bool:
         it = next(
@@ -680,7 +688,7 @@ class PlexLibraryProcessor:
 
     def _displayHeader(self):
         self._logger.info("-" * 50)
-        self._logger.info("Please Meta Manager Configuration File Generator")
+        self._logger.info("Plex Meta Manager Configuration File Generator")
         self._logger.info("-" * 50)
 
     def _displayStats(self):
@@ -734,6 +742,29 @@ class PlexLibraryProcessor:
             except:
                 self._logger.exception("Failed displaying stats for library: '{}'".format(libraryName))
                 
+        self._logger.info("-" * 50)
+
+        for libraryName in self.__stats.itemsLibraries.keys():
+            try:
+                library = self.__stats.itemsLibraries[libraryName]
+
+                self._logger.info("Collections Processed for Library: '{}'".format(libraryName))
+
+                for collection in library.collectionProcessed:
+                    self._logger.info(
+                        "  {}".format(collection.title)
+                    )
+
+                self._logger.info("Items Processed for Library: '{}'".format(libraryName))
+
+                for item in library.itemsProcessed:
+                    self._logger.info(
+                        "  {}".format(item.title)
+                    )
+                                    
+            except:
+                self._logger.exception("Failed displaying items processed for library: '{}'".format(libraryName))
+
         self._logger.info("-" * 50)
 
     def _getTemplateArgs(self):
